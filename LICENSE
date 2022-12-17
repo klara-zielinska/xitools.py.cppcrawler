@@ -1,6 +1,8 @@
-                                 Apache License
-                           Version 2.0, January 2004
+                                 Apache License *
+                     Version 2.0, January 2004/December 2022
                         http://www.apache.org/licenses/
+
+                          * with an additional condition
 
    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
@@ -172,6 +174,9 @@
       defend, and hold each Contributor harmless for any liability
       incurred by, or claims asserted against, such Contributor by reason
       of your accepting any such warranty or additional liability.
+
+   *10. Attribution. If used commercially, Work has to be attributed in a way
+      visible to the customer.
 
    END OF TERMS AND CONDITIONS
 
