@@ -1,0 +1,21 @@
+[project]
+name = "xitools.py.cppcrawler"
+version = "0.0.1"
+authors = [
+  { name="Klara Zielińska", email="clare.blackwater2@gmail.com" },
+]
+description = "Module for C++ code syntax analysis"
+requires-python = ">=3.6"
+dependencies = [
+	"numpy",
+	"regex"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: Freely Distributable",
+    "Operating System :: Microsoft :: Windows",
+]
+
+[tool.pdm]
+includes = ["src"]
+package-dir = "src"
