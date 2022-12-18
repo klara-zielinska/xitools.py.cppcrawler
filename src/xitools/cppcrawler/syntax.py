@@ -24,9 +24,15 @@ class Syntax:
 
     def makeClassPrefixRe(cname):
         return r"class\s+{}\b(?:[^;\{{]|{})*{{".format(cname, _commentRe)
+    
+
+    def makeNamespacePrefixRe(nsname):
+        return r"namespace\s+{}\b(?:[^;\{{]|{})*{{".format(nsname, _commentRe)
+
 
     def makeDirectCallRe(methnames):
         return  r"([^\w\.:]|this->|[^-]>)(" + r"\(|".join(methnames) + r"\()"
+
 
     # normal form of the type required:
     # - no leading and trailing spaces,
@@ -43,6 +49,7 @@ class Syntax:
         tpRegex = regex.sub(r"^\\s\*", "", tpRegex)
         tpRegex = regex.sub(r"\\s\*$", "", tpRegex)
         return tpRegex
+
 
     # no template class support
     # normal form of the prototype required:
@@ -68,10 +75,12 @@ class Syntax:
             protRegex += r"\s*const"
         return protRegex
 
+
     def removeComments(code):
         code = regex.sub(r"//.*", "", code)
         code = regex.sub(r"/\*(?:[^\*]|\*[^/])*\*/", "", code)
         return code
+
 
     #_prefMethProt = regex.compile(r"(\w+)::(.)")
     # prot in normal form (see above)
@@ -82,8 +91,10 @@ class Syntax:
         else:
             return tuple(div)
     
+
     def tempPar(n):
         return "" if n == 0 else r"<(?:[^<>]|{})*>".format(Syntax.tempPar(n-1))
+
 
     def nextClipAndLineEnds(code, begin):
         nls = []

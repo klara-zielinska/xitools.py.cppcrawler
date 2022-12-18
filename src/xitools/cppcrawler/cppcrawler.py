@@ -34,7 +34,7 @@ class CppCrawler:
 
                 if selectedClass != cname:
                     if not cname: 
-                        src.resetScope()
+                        src.resetScopes()
                     elif src.tryScopeToClassBody(cname, (None, None)) < 0: # if class not found
                         continue
                     selectedClass = cname

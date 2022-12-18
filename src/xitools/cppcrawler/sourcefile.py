@@ -1,3 +1,4 @@
+from .utils import *
 from .syntax import *
 from . import sourcematch as sm
 import numpy
@@ -10,8 +11,7 @@ class SourceFile:
 	__clipRanges = None
 	__lineEnds   = None
 	__blocksEnds = None
-	__scopeBegin = None
-	__scopeEnd   = None
+	__scopes     = None
 	
 
 	def __init__(self, filename=None):
@@ -24,21 +24,45 @@ class SourceFile:
 		with open(filename, "r", encoding=encoding, newline="") as f:
 			self.__code = f.read()
 			self.__joinLines()
-			self.resetScope()
+			self.resetScopes()
 			self.__makeClipRangesAndLineEnds()
 			self.__makeBlockEnds()
 
 
-	def resetScope(self):
-		self.__scopeBegin = None
-		self.__scopeEnd   = None
+	def save(self, encoding="utf-8"):
+		assert self.isLoaded(), "No loaded file."
+		self.saveAs(self.__filename, encoding)
 
-	def scope(self):
-		return (self.__scopeBegin, self.__scopeEnd)
+
+	def saveAs(self, filename, encoding="utf-8"):
+		with open(filename, "w", encoding=encoding, newline="") as f:
+			f.write(self.__code)
+			f.flush()
+			self.__filename = filename
+
+
+	def resetScopes(self):
+		self.__scopes = [(None, None)]
+
+
+	def scopes(self):
+		return self.__scopes
+
 
 	def setScope(self, begin, end):
-		self.__scopeBegin = begin
-		self.__scopeEnd   = end
+		self.__scopes = [(begin, end)]
+
+
+	def setScopes(self, scopes):
+		if type(scopes) is tuple: 
+			self.__scopes = [scopes]
+		else:
+			assert type(scopes) is list
+			self.__scopes = scopes.copy()
+
+
+	def addScope(self, begin, end):
+		insertRangeSorted(self.__scopes, begin, end)
 
 
 	def isClipped(self, pos):
@@ -51,42 +75,59 @@ class SourceFile:
 	
 
 	# result - generator
-	def __findAllGen(self, pat, begin=None, end=None, excludeClips=True):
-		if begin is None: begin = self.__scopeBegin
-		if end   is None: end   = self.__scopeEnd
-		if type(pat) is not regex.Pattern:
-			pat = regex.compile(pat)
-		for mres in pat.finditer(self.__code, begin, end):
-			if not excludeClips or not self.isClipped(mres.start()):
-				yield mres
-				
+	def __findAllGen(self, pat, excludeClips=True):
+		for (begin, end) in self.__scopes:
+			if type(pat) is not regex.Pattern:
+				pat = regex.compile(pat)
+			for mres in pat.finditer(self.__code, begin, end):
+				if not excludeClips or not self.isClipped(mres.start()):
+					yield mres
+
 
 	# result - generator
-	def __findAllGen_SkipBlocks(self, pat, begin=None, end=None, excludeClips=True):
-		if begin is None: begin = self.__scopeBegin
-		if end   is None: end   = self.__scopeEnd
+	def __findAllGen_SkipBlocks(self, pat, excludeClips=True):
 		if pat is regex.Pattern: 
 			pat = pat.pattern
 		pat += r"|\{"
 		pat = regex.compile(pat)
-		while mres := pat.search(self.__code, begin, end):
-			if mres.group(0) == "{":
-				begin = self.__blocksEnds[mres.start()]
-			elif not excludeClips or not self.isClipped(mres.start()):
-				begin = mres.end()
-				yield mres
+		for (begin, end) in self.__scopes:
+			while mres := pat.search(self.__code, begin, end):
+				if mres.group(0) == "{":
+					begin = self.__blocksEnds[mres.start()]
+				elif not excludeClips or not self.isClipped(mres.start()):
+					begin = mres.end()
+					yield mres
 				
 
-	def __find(self, pat, begin=None, end=None, excludeClips=True):
-		return next(self.__findAllGen(pat, begin, end, excludeClips), None)
+	def __findPatUnscoped(self, pat, begin, end=None, excludeClips=True):
+		while mres := pat.search(self.__code, begin, end):
+			if not excludeClips or not self.isClipped(mres.start()):
+				return mres
+			else:
+				begin = mres.end()
+			
+				
+	def __findReUnscoped_SkipBlocks(self, re, begin, end=None, excludeClips=True):
+		pat = regex.compile(re + r"|\{")
+		while mres := pat.search(self.__code, begin, end):
+			if excludeClips and self.isClipped(mres.start()):
+				begin = mres.end()
+			elif mres.group() == "{":
+				begin = self.__blocksEnds[mres.start()]
+			else:
+				return mres
+
+
+	def __find(self, pat, excludeClips=True):
+		return next(self.__findAllGen(pat, excludeClips), None)
 	
 
-	def __find_SkipBlocks(self, pat, begin=None, end=None, excludeClips=True):
-		return next(self.__findAllGen_SB(pat, begin, end, excludeClips), None)
+	def __find_SkipBlocks(self, pat, excludeClips=True):
+		return next(self.__findAllGen_SB(pat, excludeClips), None)
 
 
-	def find(self, pat, begin=None, end=None, *, excludeClips=True):
-		if mres := self.__find(pat, begin, end, excludeClips):
+	def find(self, pat, *, excludeClips=True):
+		if mres := self.__find(pat, excludeClips):
 			return sm.SourceMatch(self, mres)
 		else:
 			return None
@@ -100,15 +141,15 @@ class SourceFile:
 		
 
 	# result - generator
-	def findAllGen(self, pat, begin=None, end=None, *, excludeClips=True):
-		gen = self.__findAllGen(pat, begin, end, excludeClips)
+	def findAllGen(self, pat, *, excludeClips=True):
+		gen = self.__findAllGen(pat, excludeClips)
 		while mres := next(gen, None):
 			yield sm.SourceMatch(self, mres)
 			
 
 	# result - generator
-	def findAllGen_SkipBlocks(self, pat, begin=None, end=None, *, excludeClips=True):
-		gen = self.__findAllGen_SkipBlocks(pat, begin, end, excludeClips)
+	def findAllGen_SkipBlocks(self, pat, *, excludeClips=True):
+		gen = self.__findAllGen_SkipBlocks(pat, excludeClips)
 		while mres := next(gen, None):
 			yield sm.SourceMatch(self, mres)
 
@@ -116,18 +157,45 @@ class SourceFile:
 	# heuristic selection of the body of the given class
 	# selection = scoping to
 	# return: the position of the class definition or -1 in none
-	def tryScopeToClassBody(self, cname, scope=None):
-		if scope:
-			oldScope = self.scope() 
-			self.setScope(*scope)
+	def tryScopeToClassBody(self, cname, scopes=None):
+		if scopes:
+			oldScopes = self.__scopes
+			self.setScopes(scopes)
 
 		if mres := self.__find(Syntax.makeClassPrefixRe(cname)):
 			begin = mres.end()
 			self.setScope(begin, self.__blocksEnds[begin - 1])
 			return self._orgPos(mres.start())
 		else:
-			if scope: self.setScope(*oldScope)
+			if scopes: self.__scopes = oldScopes
 			return -1
+
+
+	# scope file to all bodis of the namespace nsname that start in the given scopes or in
+	# the currently active scopes if given None
+	def tryScopeToNamespaceBodies(self, nsname, scopes=None):
+		if scopes:
+			oldScopes = self.__scopes
+			self.setScopes(scopes)
+
+		nsPrefixRe = Syntax.makeNamespacePrefixRe(nsname)
+		nsScopes = []
+
+		pos = 0
+		for (begin, end) in self.__scopes:
+			if begin is not None and pos < begin: 
+				pos = begin
+			while (end is None or pos < end) and (mres := self.__findReUnscoped_SkipBlocks(nsPrefixRe, pos, end)):
+				pos = mres.end()
+				insertRangeSorted(nsScopes, pos, self.__blocksEnds[pos - 1])
+				pos = self.__blocksEnds[pos - 1] + 1
+
+		if nsScopes:
+			self.__scopes = nsScopes
+			return True
+		else:
+			if scopes: self.__scopes = oldScopes
+			return False
 	
 
 	def __makeClipRangesAndLineEnds(self):
@@ -145,11 +213,14 @@ class SourceFile:
 		self.__lineEnds = numpy.array(self.__lineEnds)
 
 
+	# method consts:
+	__blockEdgePat = regex.compile(r"[\{}]")
+
 	def __makeBlockEnds(self):
 		self.__blocksEnds = {}
 		pos = 0
 		begins = []
-		while mres := self.__find(r"[\{}]", pos):
+		while mres := self.__findPatUnscoped(SourceFile.__blockEdgePat, pos):
 			match mres.group():
 				case '{': 
 					begins.append(mres.start())
@@ -191,4 +262,3 @@ class SourceFile:
 			lastJoin = self.__lineJoins[joinsBefore-1]
 			lnStart = max(lnStart, lastJoin)
 		return (ln + joinsBefore, pos - lnStart)
-
