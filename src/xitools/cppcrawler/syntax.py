@@ -20,6 +20,7 @@ _endStrPat      = regex.compile(r'"|\r\n|$')
 _endComment1Pat = regex.compile(r'\r\n|$')
 _endCommentNOrNlPat = regex.compile(r'\*/|\r\n|$')
 
+
 class Syntax:
 
     def makeClassPrefixRe(cname):
