@@ -1,6 +1,7 @@
 from . import sourcematch as sm
 from . import sourcescopedict as ssd
 import bisect
+import regex
 
 
 class SourceMatchDict(dict):
@@ -26,6 +27,34 @@ class SourceMatchDict(dict):
     def insert(self, src, match):
         assert not self.__tagged or len(match) >= 2
         bisect.insort(self.setdefault(src, []), match)
+
+
+    def filter(self, predicate):
+        res = SourceMatchDict(tagged=self.__tagged)
+        for src in self:
+            if matches := [tm for tm in self[src] if predicate(tm)]:
+                res[src] = matches
+        return res
+
+
+    def precededWith(self, re):
+        pat = regex.compile(f"(?<={re})")
+        if self.isTagged():
+            pred = lambda tm: pat.match(tm[0]._code(), tm[0]._intStart())
+        else:
+            pred = lambda tm: pat.match(tm._code(), tm._intStart())
+
+        return self.filter(pred)
+
+
+    def notPrecededWith(self, re):
+        pat = regex.compile(f"(?<!{re})")
+        if self.isTagged():
+            pred = lambda tm: pat.match(tm[0]._code(), tm[0]._intStart())
+        else:
+            pred = lambda tm: pat.match(tm._code(), tm._intStart())
+
+        return self.filter(pred)
 
 
     def isTagged(self):
