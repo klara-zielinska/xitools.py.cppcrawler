@@ -1,6 +1,7 @@
 from .utils import *
 from .syntax import *
 from . import sourcematch as sm
+from copy import copy
 import numpy
 import shutil
 import errno
@@ -21,6 +22,19 @@ class SourceFile:
 	def __init__(self, filename=None):
 		if filename:
 			self.load(filename)
+			
+        
+	def __str__(self):
+		return (f"<xitools.cppcrawler.sourcefile.SourceFile object at {hex(id(self))}, "
+			    f"filename='{self.filename()}'>")
+
+
+	__repr__ = __str__
+
+
+	# returns internal code representation
+	def _code(self):
+		return self.__code
 
 
 	def _matchShellCopy(self):
@@ -106,18 +120,14 @@ class SourceFile:
 	
 
 	# result - generator
-	def __findAllGenUnscoped(self, pat, begin, end, excludeClips=True):
-		if type(pat) is not regex.Pattern:
-			pat = regex.compile(pat)
+	def __findAllPatGen_Unscoped(self, pat, begin, end, excludeClips=True):
 		for mres in pat.finditer(self.__code, begin, end):
 			if not excludeClips or not self.isClipped(mres.start()):
 				yield mres
-	
+
 
 	# result - generator
-	def __findAllGen(self, pat, excludeClips=True):
-		if type(pat) is not regex.Pattern:
-			pat = regex.compile(pat)
+	def __findAllPatGen(self, pat, excludeClips=True):
 		for (begin, end) in self.__scopes:
 			for mres in pat.finditer(self.__code, begin, end):
 				if not excludeClips or not self.isClipped(mres.start()):
@@ -125,11 +135,7 @@ class SourceFile:
 
 
 	# result - generator
-	def __findAllGen_SkipBlocks(self, pat, excludeClips=True):
-		if pat is regex.Pattern: 
-			pat = pat.pattern
-		pat += r"|\{"
-		pat = regex.compile(pat)
+	def __findAllPatGen_SkipBlocks(self, pat, excludeClips=True):
 		for (begin, end) in self.__scopes:
 			while mres := pat.search(self.__code, begin, end):
 				if mres.group(0) == "{":
@@ -137,11 +143,6 @@ class SourceFile:
 				elif not excludeClips or not self.isClipped(mres.start()):
 					begin = mres.end()
 					yield mres
-				
-
-	def __matchReUnscoped(self, re, begin, end=None, excludeClips=True):
-		pat = regex.compile(re)
-		return self.__matchPatUnscoped(pat, begin, end, excludeClips)
 
 
 	def __matchPatUnscoped(self, pat, begin, end=None, excludeClips=True):
@@ -150,11 +151,6 @@ class SourceFile:
 				return mres
 			else:
 				begin = mres.end()
-				
-
-	def __findReUnscoped(self, re, begin, end=None, excludeClips=True):
-		pat = regex.compile(re)
-		return self.__findReUnscoped(pat, begin, end, excludeClips)
 
 
 	def __findPatUnscoped(self, pat, begin, end=None, excludeClips=True):
@@ -163,14 +159,9 @@ class SourceFile:
 				return mres
 			else:
 				begin = mres.end()
-			
-
-	def __findReUnscoped_SkipBlocks(self, re, begin, end=None, excludeClips=True):
-		pat = regex.compile(re + r"|\{")
-		return self.__findPatUnscoped_SkipBlocks(pat, begin, end, excludeClips)
 
 				
-	# pat has to already include "|\{"
+	# pat has to be prepared with makeSkipBlocksPat (suffixed with "|\{")
 	def __findPatUnscoped_SkipBlocks(self, pat, begin, end=None, excludeClips=True):
 		while mres := pat.search(self.__code, begin, end):
 			if excludeClips and self.isClipped(mres.start()):
@@ -181,17 +172,17 @@ class SourceFile:
 				return mres
 
 
-	def __find(self, pat, excludeClips=True):
-		return next(self.__findAllGen(pat, excludeClips), None)
+	def __findPat(self, pat, excludeClips=True):
+		return next(self.__findAllPatGen(pat, excludeClips), None)
 	
 
-	def __find_SkipBlocks(self, pat, excludeClips=True):
-		return next(self.__findAllGen_SkipBlocks(pat, excludeClips), None)
+	def __findPat_SkipBlocks(self, pat, excludeClips=True):
+		return next(self.__findAllPatGen_SkipBlocks(pat, excludeClips), None)
 	
 
 	def matchUnscoped(self, pat, begin=None, end=None, *, excludeClips=True):
-		if begin is not None: begin = self._relPos(begin)
-		if end   is not None: end   = self._relPos(end)
+		if begin is not None: begin = self._intPos(begin)
+		if end   is not None: end   = self._intPos(end)
 		if type(pat) is regex.Pattern:
 			mres = self.__matchPatUnscoped(pat, begin, end, excludeClips)
 		else:
@@ -199,58 +190,57 @@ class SourceFile:
 		return sm.SourceMatch(self, mres) if mres else None
 
 
-	def findUnscoped(self, pat, begin=None, end=None, *, excludeClips=True):
-		if begin is not None: begin = self._relPos(begin)
-		if end   is not None: end   = self._relPos(end)
-		if type(pat) is regex.Pattern:
-			mres = self.__findPatUnscoped(pat, begin, end, excludeClips)
+	def findUnscoped(self, pat, begin=None, end=None, *, skipBlocks=False, excludeClips=True):
+		if type(pat) is not regex.Pattern:
+			pat = self.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
 		else:
-			mres = self.__findReUnscoped(pat, begin, end, excludeClips)
+			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
+		if begin is not None: begin = self._intPos(begin)
+		if end   is not None: end   = self._intPos(end)
+
+		if skipBlocks: mres = self.__findPatUnscoped_SkipBlocks(pat, begin, end, excludeClips)
+		else:          mres = self.__findPatUnscoped(pat, begin, end, excludeClips)
 		return sm.SourceMatch(self, mres) if mres else None
-
-
-	def findUnscoped_SkipBlocks(self, pat, begin=None, end=None, *, excludeClips=True):
-		assert type(pat) is not regex.Pattern
-		if begin is not None: begin = self._relPos(begin)
-		if end   is not None: end   = self._relPos(end)
-		mres = self.__findReUnscoped_SkipBlocks(pat, begin, end, excludeClips)
-		return sm.SourceMatch(self, mres) if mres else None
-
-
-	def find(self, pat, *, excludeClips=True):
-		if mres := self.__find(pat, excludeClips):
-			return sm.SourceMatch(self, mres)
-		else:
-			return None
 		
 
-	def find_SkipBlocks(self, pat, begin=None, end=None, *, excludeClips=True):
-		if mres := next(self.__find_SkipBlocks(pat, begin, end, excludeClips), None):
-			return sm.SourceMatch(self, mres)
+	def find(self, pat, *, skipBlocks=False, excludeClips=True):
+		if type(pat) is not regex.Pattern:
+			pat = self.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
 		else:
-			return None
-		
+			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
 
-	# result - generator
-	def findAllGen(self, pat, *, excludeClips=True):
-		gen = self.__findAllGen(pat, excludeClips)
-		srcMatchCopy = self._matchShellCopy()
-		while mres := next(gen, None):
-			yield sm.SourceMatch(srcMatchCopy, mres, copySource=False)
+		if skipBlocks: mres = self.__findPat_SkipBlocks(pat, excludeClips)
+		else:          mres = self.__findPat(pat, excludeClips)
+		if mres: return sm.SourceMatch(self, mres)
+		else:    return None
 			
-
+		
+	# if skipBlocks, pat has to be prepared with makeSkipBlocksPat (suffixed with "|\{")
 	# result - generator
-	def findAllGen_SkipBlocks(self, pat, *, excludeClips=True):
-		gen = self.__findAllGen_SkipBlocks(pat, excludeClips)
-		srcMatchCopy = self._matchShellCopy()
+	def findAllGen(self, pat, *, skipBlocks=False, excludeClips=True):
+		if type(pat) is not regex.Pattern:
+			pat =self.makeSkipBlocksPat(pat) if skipBlocks else  regex.compile(pat)
+		else:
+			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
+		srcMatchCopy = copy(self)
+
+		if skipBlocks: gen = self.__findAllPatGen_SkipBlocks(pat, excludeClips)
+		else:          gen = self.__findAllPatGen(pat, excludeClips)
 		while mres := next(gen, None):
 			yield sm.SourceMatch(srcMatchCopy, mres, copySource=False)
 		
-
+			
+	# if skipBlocks, pat has to be prepared with makeSkipBlockPat (suffixed with "|\{")
 	# result - generator
-	def findAllGenUnscoped(self, pat, begin=None, end=None, *, excludeClips=True):
-		gen = self.__findAllGenUnscoped(pat, begin, end, excludeClips)
-		srcMatchCopy = self._matchShellCopy()
+	def findAllGen_Unscoped(self, pat, begin=None, end=None, *, skipBlocks=False, excludeClips=True):
+		if type(pat) is not regex.Pattern:
+			pat = self.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
+		else:
+			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
+		srcMatchCopy = copy(self)
+		
+		if skipBlocks: gen = self.__findAllPatGen_Unscoped_SkipBlocks(pat, begin, end, excludeClips)
+		else:		   gen = self.__findAllPatGen_Unscoped(pat, begin, end, excludeClips)
 		while mres := next(gen, None):
 			yield sm.SourceMatch(srcMatchCopy, mres, copySource=False)
 
@@ -447,7 +437,7 @@ class SourceFile:
 		return pos + 3*self._lineJoinsBefore(pos)
 	
 
-	def _relPos(self, pos):
+	def _intPos(self, pos):
 		return pos - 3*self._lineJoinsOrgBefore(pos)
 
 
@@ -464,3 +454,7 @@ class SourceFile:
 			lastJoin = self.__lineJoins[joinsBefore-1]
 			lnStart = max(lnStart, lastJoin)
 		return (ln + joinsBefore, pos - lnStart)
+
+
+	def makeSkipBlocksPat(re):
+		return regex.compile(re + r"|\{")
