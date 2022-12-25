@@ -1,10 +1,11 @@
 from . import sourcefile as sf
+from copy import copy
 
 
 class SourceMatch:
     def __init__(self, sourcefile, mres, *, copySource=True):
         assert mres
-        self.__sourcefile = sourcefile._matchShellCopy() if copySource else sourcefile
+        self.__sourcefile = copy(sourcefile) if copySource else sourcefile
         self.__mres = mres
 
     def __getitem__(self, *groups):
@@ -42,3 +43,12 @@ class SourceMatch:
     
     def endLoc(self, group=0):
         return self.__sourcefile._intOrgLocation(self.__mres.end(group))
+
+    def _code(self):
+        return self.__sourcefile._code()
+
+    def _intStart(self, group=0):
+        return self.__mres.start(group)
+
+    def _intEnd(self, group=0):
+        return self.__mres.end(group)
