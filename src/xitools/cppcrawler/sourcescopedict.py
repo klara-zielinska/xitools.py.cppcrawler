@@ -7,12 +7,11 @@ import bisect
 class SourceScopeDict(dict):
 
     def __init__(self, other={}, *, tagged=None):
+        super(SourceScopeDict, self).__init__(other)
         if type(other) is SourceScopeDict:
             assert tagged is None
-            super(SourceScopeDict, self).__init__(other)
             self.__tagged = other.__tagged
         else:
-            super(SourceScopeDict, self).__init__(other)
             if other:
                 othTagged = SourceScopeDict.isDictTagged(other)
                 assert tagged is None or othTagged == tagged
