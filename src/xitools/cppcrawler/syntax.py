@@ -7,7 +7,7 @@ _stringRe   = r'"(?:[^"\\]|\r\n|\\.)*"'
 _stringPat  = regex.compile(_stringRe)
 _charRe  = r"'(?:[^'\\]|\r\n|\\.)*'"
 _charPat = regex.compile(_charRe)
-_sxRe    = r"\s|" + _commentRe # c++ space-extra pattern (comments are white-spaces)
+_sxRe    = r"\s|" + _commentRe # c++ space extra pattern (comments are white-spaces)
 _sxPat   = regex.compile(_sxRe)
 _clipRe  = f"{_commentRe}|{_stringRe}|{_charRe}"
 _clipPat = regex.compile(_clipRe)
@@ -22,6 +22,13 @@ _endCommentNOrNlPat = regex.compile(r'\*/|\r\n|$')
 
 
 class Syntax:
+    commentRe  = _commentRe
+    commentPat = _commentPat
+    stringRe   = _stringRe
+    stringPat  = _stringPat
+    charRe     = _charRe
+    charPat    = _charPat
+
 
     def makeClassPrefixRe(cname):
         return r"class\s+{}\b(?:[^;\{{]|{})*{{".format(cname, _commentRe)
@@ -59,20 +66,23 @@ class Syntax:
     # - no argument names,
     # - exactly 1 space after , and between ) and const at the end, no other spaces,
     # - no comments
-    def makeMethProtRe(prot):
-        typePat = r"[^\),]+"
-        #protPat = r"(\w+)::(\w+)\(({tp})?(?:, ({tp}))*\)( const)?".format(
-        protPat = r"(~?\w+)\(({tp})?(?:, ({tp}))*\)( const)?".format(
-            tp = typePat)
-        mres = regex.fullmatch(protPat, prot)
-        #protRegex = r"{}\s*::\s*{}\s*\(\s*".format(mres.group(1), mres.group(2))
-        protRegex = r"{}\s*\(\s*".format(mres.group(1))
-        if mres.group(2): #
-            protRegex += Syntax.makeTypeRe(mres.group(2)) + r"\s*(?:\b\w+\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?"  #
-            for tp in mres.captures(3): #
+    def makeMethProtRe(prot, *, resultType=False):
+        typeRe = r"[^\),]+"
+        protRe = r"(?:(\w+)::)?(~?\w+)\(({tp})?(?:, ({tp}))*\)( const)?".format(tp = typeRe)
+        mres = regex.fullmatch(protRe, prot)
+        if resultType:
+            protRegex = r"(?<=(?:^|[;\{{}}])(?:{com}|\s)*)[\w\*&:][\w\*&:<>,\s]*?\s*\b".format(com = _commentRe)
+        else:
+            protRegex = ""
+        if mres.group(1):
+            protRegex += f"{mres.group(1)}\\s*::\\s*"
+        protRegex += f"(?P<methname>{mres.group(2)})\\s*\(\\s*"
+        if mres.group(3): #
+            protRegex += Syntax.makeTypeRe(mres.group(3)) + r"\s*(?:\b\w+\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?"  #
+            for tp in mres.captures(4): #
                 protRegex += r",\s*" + Syntax.makeTypeRe(tp) + r"\s*(?:\b\w+\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?"
         protRegex += r"\)"
-        if mres.group(4): #
+        if mres.group(5): #
             protRegex += r"\s*const"
         return protRegex
 
@@ -83,9 +93,9 @@ class Syntax:
         return code
 
 
-    #_prefMethProt = regex.compile(r"(\w+)::(.)")
     # prot in normal form (see above)
-    def extractMethProtClass(prot):
+    # no template specialization support (e.g. A<std::vector<int>>::foo() )
+    def extractProtContainerName(prot):
         div = prot.split("::", 1)
         if len(div) == 1:
             return (None, div[0])
