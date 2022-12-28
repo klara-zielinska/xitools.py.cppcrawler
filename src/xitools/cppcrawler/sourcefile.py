@@ -1,3 +1,4 @@
+from dataclasses import replace
 from .utils import *
 from .syntax import *
 from . import sourcematch as sm
@@ -15,7 +16,7 @@ class SourceFile:
 	__lineJoinsOrg = None
 	__clipRanges   = None
 	__lineEnds     = None
-	__blocksEnds   = None
+	__blockEnds    = None
 	__scopes       = None
 	
 
@@ -90,24 +91,21 @@ class SourceFile:
 		self.__scopes = [(None, None)]
 
 
-	def scopes(self):
+	def _intScopes(self):
 		return self.__scopes
 
 
 	def setScope(self, begin, end):
-		self.__scopes = [(begin, end)]
+		self.__scopes = [(self._intPos(begin), self._intPos(end))]
 
 
 	def setScopes(self, scopes):
-		if type(scopes) is tuple: 
-			self.__scopes = [scopes]
-		else:
-			assert type(scopes) is list
-			self.__scopes = scopes.copy()
+		assert type(scopes) is list
+		self.__scopes = list(map(lambda scope: (self._intPos(scope[0]), self._intPos(scope[1])), scopes))
 
 
 	def addScope(self, begin, end):
-		insertRangeSorted(self.__scopes, begin, end)
+		insertRangeSorted(self.__scopes, self._intPos(begin), self._intPos(end))
 
 
 	def isClipped(self, pos):
@@ -138,11 +136,15 @@ class SourceFile:
 	def __findAllPatGen_SkipBlocks(self, pat, excludeClips=True):
 		for (begin, end) in self.__scopes:
 			while mres := pat.search(self.__code, begin, end):
-				if mres.group(0) == "{":
-					begin = self.__blocksEnds[mres.start()] + 1
-				elif not excludeClips or not self.isClipped(mres.start()):
+				if mres.group("__cppcr_sb"):
+					if self.isClipped(mres.start()):
+						begin = mres.end()
+					else:
+						begin = self.__blockEnds[mres.start()]
+				else:
 					begin = mres.end()
-					yield mres
+					if not excludeClips or not self.isClipped(mres.start()):
+						yield mres
 
 
 	def __matchPatUnscoped(self, pat, begin, end=None, excludeClips=True):
@@ -161,15 +163,18 @@ class SourceFile:
 				begin = mres.end()
 
 				
-	# pat has to be prepared with makeSkipBlocksPat (suffixed with "|\{")
+	# pat has to be prepared with makeSkipBlocksPat (suffixed with "|(?P<__cppcr_sb>\{)")
 	def __findPatUnscoped_SkipBlocks(self, pat, begin, end=None, excludeClips=True):
 		while mres := pat.search(self.__code, begin, end):
-			if excludeClips and self.isClipped(mres.start()):
-				begin = mres.end()
-			elif mres.group() == "{":
-				begin = self.__blocksEnds[mres.start()] + 1
+			if mres.group("__cppcr_sb"):
+				if self.isClipped(mres.start()):
+					begin = mres.end()
+				else:
+					begin = self.__blockEnds[mres.start()]
 			else:
-				return mres
+				begin = mres.end()
+				if not excludeClips or not self.isClipped(mres.start()):
+					return mres
 
 
 	def __findPat(self, pat, excludeClips=True):
@@ -192,7 +197,7 @@ class SourceFile:
 
 	def findUnscoped(self, pat, begin=None, end=None, *, skipBlocks=False, excludeClips=True):
 		if type(pat) is not regex.Pattern:
-			pat = self.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
+			pat = SourceFile.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
 		else:
 			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
 		if begin is not None: begin = self._intPos(begin)
@@ -205,7 +210,7 @@ class SourceFile:
 
 	def find(self, pat, *, skipBlocks=False, excludeClips=True):
 		if type(pat) is not regex.Pattern:
-			pat = self.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
+			pat = SourceFile.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
 		else:
 			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
 
@@ -215,11 +220,11 @@ class SourceFile:
 		else:    return None
 			
 		
-	# if skipBlocks, pat has to be prepared with makeSkipBlocksPat (suffixed with "|\{")
+	# if skipBlocks, pat has to be prepared with makeSkipBlocksPat (suffixed with "|(?P<__cppcr_sb>\{)")
 	# result - generator
 	def findAllGen(self, pat, *, skipBlocks=False, excludeClips=True):
 		if type(pat) is not regex.Pattern:
-			pat =self.makeSkipBlocksPat(pat) if skipBlocks else  regex.compile(pat)
+			pat =SourceFile.makeSkipBlocksPat(pat) if skipBlocks else  regex.compile(pat)
 		else:
 			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
 		srcMatchCopy = copy(self)
@@ -230,11 +235,11 @@ class SourceFile:
 			yield sm.SourceMatch(srcMatchCopy, mres, copySource=False)
 		
 			
-	# if skipBlocks, pat has to be prepared with makeSkipBlockPat (suffixed with "|\{")
+	# if skipBlocks, pat has to be prepared with makeSkipBlockPat (suffixed with "|(?P<__cppcr_sb>\{)")
 	# result - generator
 	def findAllGen_Unscoped(self, pat, begin=None, end=None, *, skipBlocks=False, excludeClips=True):
 		if type(pat) is not regex.Pattern:
-			pat = self.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
+			pat = SourceFile.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
 		else:
 			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
 		srcMatchCopy = copy(self)
@@ -245,27 +250,21 @@ class SourceFile:
 			yield sm.SourceMatch(srcMatchCopy, mres, copySource=False)
 
 
-	def replaceMatch(self, m, repl):
-		self.replaceMatches([m], repl)
-
-		#if type(m) is sm.SourceMatch:
-		#	m = m._SourceMatch__mres
-		#if callable(repl):
-		#	repl = repl(m)
-		#self.__code = "".join([self.__code[:m.start()], repl, self.__code[m.end():]])
-		#self.__shiftAndClearLineJoins( [(m.start(), m.end(), len(repl) - len(m.group(0)))] )
-		#self.recalcCode()
+	def replaceMatch(self, match, repl):
+		self.replaceMatches([match], repl)
 
 
-	def replaceMatches(self, ms, repl, *, sorted=False):
+	# the result is going to be invalid if matches are not sorted and the parameter sorted=True
+	def replaceMatches(self, matches, repl, *, sorted=False):
 		if not sorted:
-			ms.sort(key=lambda m: (m.start(), m.end()))
+			matches.sort(key=lambda m: (m.start(), m.end()))
 		if type(repl) is str:
-			repl = lambda _: repl
+			_repl = repl
+			repl = lambda _: _repl
 		shifts = []
 		newCode = []
 		chunkBegin = 0
-		for m in ms:
+		for m in matches:
 			m = m._SourceMatch__mres
 			newCode.append(self.__code[chunkBegin:m.start()])
 			replStr = repl(m)
@@ -311,7 +310,7 @@ class SourceFile:
 
 		if mres := self.__find(Syntax.makeClassPrefixRe(cname)):
 			begin = mres.end()
-			self.setScope(begin, self.__blocksEnds[begin - 1])
+			self.setScope(begin, self.__blockEnds[begin - 1])
 			return self._orgPos(mres.start())
 		else:
 			if scopes: self.__scopes = oldScopes
@@ -334,8 +333,8 @@ class SourceFile:
 				pos = begin
 			while (end is None or pos < end) and (mres := self.__findReUnscoped_SkipBlocks(nsPrefixRe, pos, end)):
 				pos = mres.end()
-				insertRangeSorted(nsScopes, pos, self.__blocksEnds[pos - 1])
-				pos = self.__blocksEnds[pos - 1] + 1
+				insertRangeSorted(nsScopes, pos, self.__blockEnds[pos - 1])
+				pos = self.__blockEnds[pos - 1] + 1
 
 		if nsScopes:
 			self.__scopes = nsScopes
@@ -364,7 +363,7 @@ class SourceFile:
 	__blockEdgePat = regex.compile(r"[\{}]")
 
 	def __makeBlockEnds(self):
-		self.__blocksEnds = {}
+		self.__blockEnds = {}
 		pos = 0
 		begins = []
 		while mres := self.__findPatUnscoped(SourceFile.__blockEdgePat, pos):
@@ -373,7 +372,7 @@ class SourceFile:
 					begins.append(mres.start())
 				case '}': 
 					assert begins, f"{self.__filename}:{self._orgPos(pos)}: }} has no match."
-					self.__blocksEnds[begins.pop()] = mres.start()
+					self.__blockEnds[begins.pop()] = mres.start()
 			pos = mres.end()
 
 		assert begins == [], f"{self.__filename}{self._orgPos(begins[-1])}: {{ has no match."
@@ -389,6 +388,15 @@ class SourceFile:
 		self.__code = regex.sub(r"\\\r\n", onMatch, self.__code)
 		self.__lineJoins = numpy.array(joins)
 		self.__lineJoinsOrg = numpy.array(joinsOrg)
+
+
+	def __recalc_lineJoinsOrg(self):
+		newLineJoinsOrg = []
+		shift = 0
+		for pos in self.__lineJoins:
+			newLineJoinsOrg.append(pos + shift)
+			shift += 3
+		self.__lineJoinsOrg = numpy.array(newLineJoinsOrg)
 
 
 	def __lineDisjoinedCode(self):
@@ -419,26 +427,34 @@ class SourceFile:
 			shifts[i] = (shifts[i][0], shifts[i][1], shiftSum)
 
 		newLineJoins = []
-		newLineJoinsOrg = []
 		joinPos = len(self.__lineJoins) - 1
 		for (begin, end, shift) in reversed([(0, 0, 0)] + shifts):
 			while joinPos >= 0 and end <= self.__lineJoins[joinPos]:
 				newLineJoins.append(self.__lineJoins[joinPos] + shift)
-				newLineJoinsOrg.append(self.__lineJoinsOrg[joinPos] + shift)
 				joinPos -= 1
 			while joinPos >= 0 and begin <= self.__lineJoins[joinPos]:
 				joinPos -= 1
 
 		self.__lineJoins = numpy.array(list(reversed(newLineJoins)))
-		self.__lineJoinsOrg = numpy.array(list(reversed(newLineJoinsOrg)))
-
+		self.__recalc_lineJoinsOrg()
 
 	def _orgPos(self, pos):
-		return pos + 3*self._lineJoinsBefore(pos)
+		if pos is None:
+			return None
+		else:
+			return pos + 3*self._lineJoinsBefore(pos)
 	
 
 	def _intPos(self, pos):
-		return pos - 3*self._lineJoinsOrgBefore(pos)
+		if pos is None:
+			return None
+		else:
+			n = self._lineJoinsOrgBefore(pos)
+			correct = 0
+			if n > 0:
+				space = pos - self.__lineJoinsOrg[n - 1]
+				correct = 3 - min(space, 3)
+			return pos - 3*n + correct
 
 
 	def _intLocation(self, pos):
@@ -457,4 +473,4 @@ class SourceFile:
 
 
 	def makeSkipBlocksPat(re):
-		return regex.compile(re + r"|\{")
+		return regex.compile(re + r"|(?P<__cppcr_sb>\{)")
