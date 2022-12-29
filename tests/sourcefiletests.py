@@ -1,22 +1,18 @@
 from xitools.cppcrawler import SourceFile
 from unittest import TestCase
-import itertools
-
-
-def zipdict_longest(d1, d2):
-    res = {}
-    for k, v in d1.items():
-        res[k] = (v, None)
-    for k, v in d2.items():
-        res[k] = (res.get(k, (None, None))[0], v)
-    return res
-
-
-def dataFilepath(dataSet, filename):
-    return f"data/{dataSet}/{filename}"
+from testutils import *
+import filecmp
 
 
 class SourceFileTests(TestCase):
+
+    testSuit = "SourceFileTests"
+
+
+    def setUpClass():
+        prepareTmpDir(SourceFileTests.testSuit)
+        os.mkdir(tmpFilepath(SourceFileTests.testSuit, "backup"))
+
 
     def test_load(self):
 
@@ -269,6 +265,20 @@ class SourceFileTests(TestCase):
                          expectedPos)
 
 
+    def test_matchUnscoped(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+
+        self.assertEqual(src.matchUnscoped(r".*once").end(), 12)
+
+        self.assertEqual(src.matchUnscoped(r"(?:.|\n)*#define algorithm2_h__").end(), 62)
+
+        self.assertEqual(src.matchUnscoped(r"(?:.|\n)*#define algorithm2_h__", end=60), None)
+
+        self.assertEqual(src.matchUnscoped(r"namespace\s*(\w+)\s*\{", 5552).end(), 5579)
+        self.assertEqual(src.matchUnscoped(r"namespace\s*(\w+)\s*\{", 5552).group(1), "map_fun_details")
+
+
     def test_replaceMatches(self):
         
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
@@ -329,3 +339,127 @@ class SourceFileTests(TestCase):
         
         self.assertEqual(src._SourceFile__lineJoinsOrg.tolist(), expectedLineJoinsOrg, "Bad original line join after "
                          "replacment of: return name<O, D, V>(static_cast<const D&>(f), val); \t}")
+        
+
+    def test_replaceAll(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        src.replaceAll("detail", "another_detail")
+
+        self.assertEqual(src._code()[src._intPos(1587) : src._intPos(1587) + 14], "another_detail")
+        
+
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+
+        src.replaceAll("namespace ", "namespace\t")
+
+        self.assertEqual(list(map(lambda mres: mres.group(0), src.findAllGen(r"namespace\s"))), 
+                         ["namespace\t"]*3)
+
+
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        src.replaceAll(r"namespace (\w+)\b", lambda m: f"namespace another_{m.group(1)}")
+
+        self.assertEqual(list(map(lambda mres: mres.group(1), src.findAllGen(r"namespace\s(\w+)\b"))), 
+                         ["another_detail", "another_map_fun_details", "another_algo"])
+
+
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        src.replaceAll(r"return name<O, D, V>\(static_cast<const D&>\(f\), val\); \t\}",
+                       "return name<O, D, V>(static_cast<const D&>(f), val); \t}")
+
+        expectedLineJoins = [ 
+             690,   716,   799,   803,   875,   903,   907,   975,   979,   994,  1178,
+            1216,  1311,  1315,  1392,  1420,  1424,  1492,  1496,  1511,  2568,  2631,
+            2715,  2718,  2807,  2890,  2907,  2924,  2928,  2987,  3004,  3088,  3091,
+            3173,  3731,  3790,  3870,  3873,  3951,  4030,  4045,  4059,  4063,  4109,
+            4135,  4166,  4182,  4191,  4251,  4254,         6043,  6119,  6163,  6189,
+            6193,  6273,  6349,  6395,  6485,  6529,  6558,  6562,  6579,  6671,  6747,
+            6811,  6982,  7026,  7061,  7065,  7082,  7101,  7205,  7287,  7369,  7621,
+            7665,  7706,  7710,  7727,  7746,  7765,  7840,  7922,  7978,  8004,  8008,
+            8094,  8176,  8228,  8318,  8374,  8403,  8407,  8424,  8522,  8604,  8674,
+            8845,  8901,  8936,  8940,  8957,  8976,  9086,  9168,  9256,  9508,  9564,
+            9605,  9609,  9626,  9645,  9664 ]
+
+        expectedLineJoinsOrg = [ 
+             690,   719,   805,   812,   887,   918,   925,   996,  1003,  1021,  1208,
+            1249,  1347,  1354,  1434,  1465,  1472,  1543,  1550,  1568,  2628,  2694,
+            2781,  2787,  2879,  2965,  2985,  3005,  3012,  3074,  3094,  3181,  3187,
+            3272,  3833,  3895,  3978,  3984,  4065,  4147,  4165,  4182,  4189,  4238,
+            4267,  4301,  4320,  4332,  4395,  4401,         6193,  6272,  6319,  6348,
+            6355,  6438,  6517,  6566,  6659,  6706,  6738,  6745,  6765,  6860,  6939,
+            7006,  7180,  7227,  7265,  7272,  7292,  7314,  7421,  7506,  7591,  7846,
+            7893,  7937,  7944,  7964,  7986,  8008,  8086,  8171,  8230,  8259,  8266,
+            8355,  8440,  8495,  8588,  8647,  8679,  8686,  8706,  8807,  8892,  8965,
+            9139,  9198,  9236,  9243,  9263,  9285,  9398,  9483,  9574,  9829,  9888,
+            9932,  9939,  9959,  9981,  10003 ]
+        
+        self.assertEqual(src._SourceFile__lineJoins.tolist(), expectedLineJoins, "Bad line join after "
+                         "replacment of: return name<O, D, V>(static_cast<const D&>(f), val); \t}")
+        
+        self.assertEqual(src._SourceFile__lineJoinsOrg.tolist(), expectedLineJoinsOrg, "Bad original line join after "
+                         "replacment of: return name<O, D, V>(static_cast<const D&>(f), val); \t}")
+        
+
+    def test_tryScopeToNamespaceBody(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+
+        src.tryScopeToNamespaceBody("detail")
+        self.assertEqual(src._intScopes(), [(src._intPos(1595), src._intPos(4979))])
+
+
+        src.resetScopes()
+
+        src.tryScopeToNamespaceBody("map_fun_details|algo")
+        self.assertEqual(src._intScopes(), 
+                         [(src._intPos(5579), src._intPos(6129)), (src._intPos(10032), src._intPos(12350))])
+        
+        
+    def test_tryScopeToClassBody(self):
+        
+        src = SourceFile(dataFilepath("civ", "CvUnitSort.h"))
+
+        src.tryScopeToClassBody("UnitSortBase")
+        self.assertEqual(src._intScopes(), [(src._intPos(688), src._intPos(1242))])
+
+
+        src.resetScopes()
+
+        src.tryScopeToClassBody("UnitSortMove")
+        self.assertEqual(src._intScopes(), [(src._intPos(1513), src._intPos(1678))])
+
+
+        src.resetScopes()
+
+        src.tryScopeToClassBody("UnitSortL.*")
+        self.assertEqual(src._intScopes(), [(src._intPos(3562), src._intPos(4041)), 
+                                            (src._intPos(4075), src._intPos(4315))])
+
+
+    def test_saveAs(self):
+        
+        src1 = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        src1.saveAs(tmpFilepath(self.testSuit, "algo.h"))
+        self.assertTrue(filecmp.cmp(dataFilepath("civ", "algorithm2.h"), tmpFilepath(self.testSuit, "algo.h"), False))
+
+        self.assertRaises(FileExistsError, src1.saveAs, tmpFilepath(self.testSuit, "algo.h"))
+        
+        self.assertRaises(FileExistsError, src1.save)
+        
+
+        src2 = SourceFile(dataFilepath("civ", "CvUnitSort.h"))
+
+        self.assertRaises(FileExistsError, src2.saveAs, tmpFilepath(self.testSuit, "algo.h"))
+        
+        src2.saveAs(tmpFilepath(self.testSuit, "algo.h"), force=True)
+        self.assertTrue(filecmp.cmp(dataFilepath("civ", "CvUnitSort.h"), tmpFilepath(self.testSuit, "algo.h"), False))
+
+        src1.save(backupDir=tmpFilepath(self.testSuit, "backup"), force=True)
+        self.assertTrue(filecmp.cmp(dataFilepath("civ", "algorithm2.h"), tmpFilepath(self.testSuit, "algo.h"), False))
+        self.assertTrue(filecmp.cmp(dataFilepath("civ", "CvUnitSort.h"), tmpFilepath(self.testSuit, "backup/algo.h"), 
+                                    False))
