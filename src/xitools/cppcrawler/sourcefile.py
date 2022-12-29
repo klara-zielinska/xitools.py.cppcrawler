@@ -186,12 +186,11 @@ class SourceFile:
 	
 
 	def matchUnscoped(self, pat, begin=None, end=None, *, excludeClips=True):
+		if type(pat) is not regex.Pattern:
+			pat = regex.compile(pat)
 		if begin is not None: begin = self._intPos(begin)
 		if end   is not None: end   = self._intPos(end)
-		if type(pat) is regex.Pattern:
-			mres = self.__matchPatUnscoped(pat, begin, end, excludeClips)
-		else:
-			mres = self.__matchReUnscoped(pat, begin, end, excludeClips)
+		mres = self.__matchPatUnscoped(pat, begin, end, excludeClips)
 		return sm.SourceMatch(self, mres) if mres else None
 
 
@@ -281,7 +280,9 @@ class SourceFile:
 	def replaceAll(self, pat, repl, *, excludeClips=True):
 		if type(pat) is not regex.Pattern:
 			pat = regex.compile(pat)
-
+		if type(repl) is str:
+			_repl = repl
+			repl = lambda _: _repl
 		shifts = []
 
 		def inRepl(mres):
@@ -295,7 +296,6 @@ class SourceFile:
 
 		for (begin, end) in self.__scopes:
 			self.__code = pat.sub(inRepl, self.__code, pos=begin, endpos=end)
-			
 		self.__shiftAndClearLineJoins(shifts)
 		self.recalcCode()
 
@@ -304,36 +304,35 @@ class SourceFile:
 	# selection = scoping to
 	# return: the position of the class definition or -1 in none
 	def tryScopeToClassBody(self, cname, scopes=None):
-		if scopes:
-			oldScopes = self.__scopes
-			self.setScopes(scopes)
-
-		if mres := self.__find(Syntax.makeClassPrefixRe(cname)):
-			begin = mres.end()
-			self.setScope(begin, self.__blockEnds[begin - 1])
-			return self._orgPos(mres.start())
-		else:
-			if scopes: self.__scopes = oldScopes
-			return -1
-
+		return self.__tryScopeToBlockByPrefix(Syntax.makeClassPrefixRe(f"(?:{cname})"), scopes)
+		
 
 	# scope file to all bodis of the namespace nsname that start in the given scopes or in
 	# the currently active scopes if given None
-	def tryScopeToNamespaceBodies(self, nsname, scopes=None):
+	def tryScopeToNamespaceBody(self, nsname, scopes=None):
+		return self.__tryScopeToBlockByPrefix(Syntax.makeNamespacePrefixRe(f"(?:{nsname})"), scopes)
+	
+
+	def __tryScopeToBlockByPrefix(self, prefixRe, scopes=None):
 		if scopes:
 			oldScopes = self.__scopes
 			self.setScopes(scopes)
 
-		nsPrefixRe = Syntax.makeNamespacePrefixRe(nsname)
+		nsPrefixPat = SourceFile.makeSkipBlocksPat(prefixRe)
 		nsScopes = []
 
 		pos = 0
-		for (begin, end) in self.__scopes:
+		for scope in self.__scopes:
+			begin = scope[0]
+			end   = scope[1]
+			if tagged := len(scope) == 3:
+				tag = scopes[2]
 			if begin is not None and pos < begin: 
 				pos = begin
-			while (end is None or pos < end) and (mres := self.__findReUnscoped_SkipBlocks(nsPrefixRe, pos, end)):
+			while (end is None or pos < end) and (mres := self.__findPatUnscoped_SkipBlocks(nsPrefixPat, pos, end)):
 				pos = mres.end()
-				insertRangeSorted(nsScopes, pos, self.__blockEnds[pos - 1])
+				foundScope = tuple([pos, self.__blockEnds[pos - 1]] + ([tag] if tagged else []))
+				nsScopes.append(foundScope)
 				pos = self.__blockEnds[pos - 1] + 1
 
 		if nsScopes:
