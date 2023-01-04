@@ -11,7 +11,7 @@ _sxRe    = r"\s|" + _commentRe # c++ space extra pattern (comments are white-spa
 _sxPat   = regex.compile(_sxRe)
 _clipRe  = f"{_commentRe}|{_stringRe}|{_charRe}"
 _clipPat = regex.compile(_clipRe)
-_optValRe  = f"{_stringRe}|{_charRe}|[\w-\.]+"
+_optValRe  = f"{_stringRe}|{_charRe}|[\w\.-]+"
 _optValPat = regex.compile(_optValRe)
 
 _clipBeginPat   = regex.compile(r"['\"]|//|/\*|\r\n")

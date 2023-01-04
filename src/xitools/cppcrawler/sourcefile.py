@@ -38,13 +38,17 @@ class SourceFile:
 		return self.__code
 
 
-	def _matchShellCopy(self):
-		srcShell = SourceFile()
-		srcShell.__filename  = self.__filename
-		srcShell.__lineJoins = self.__lineJoins.copy()
-		srcShell.__lineJoinsOrg = self.__lineJoinsOrg.copy()
-		srcShell.__lineEnds  = self.__lineEnds.copy()
-		return srcShell
+	def copy(self):
+		cp = SourceFile()
+		cp.__filename   = self.__filename
+		cp.__code       = self.__code
+		cp.__lineJoins  = self.__lineJoins.copy()
+		cp.__lineJoinsOrg = self.__lineJoinsOrg.copy()
+		cp.__clipRanges = self.__clipRanges.copy()
+		cp.__lineEnds   = self.__lineEnds.copy()
+		cp.__blockEnds  = self.__blockEnds.copy()
+		cp.__scopes     = self.__scopes.copy()
+		return cp
 
 
 	def filename(self):
@@ -52,8 +56,8 @@ class SourceFile:
 
 
 	def load(self, filename, encoding="utf-8"):
-		self.__filename = filename
-		with open(filename, "r", encoding=encoding, newline="") as f:
+		self.__filename = os.path.abspath(filename)
+		with open(self.__filename, "r", encoding=encoding, newline="") as f:
 			self.__code = f.read()
 			self.__joinLines()
 			self.resetScopes()
@@ -75,7 +79,8 @@ class SourceFile:
 			raise FileExistsError(errno.EEXIST, "File exists, use force to override", filename)
 		if backupDir:
 			backupName = os.path.join(backupDir, os.path.basename(filename))
-			assert not os.path.exists(backupName), "File already exists in the backup directory"
+			if os.path.exists(backupName): 
+				raise FileExistsError(errno.EEXIST, "Backup file already exists", backupName)
 			shutil.copy2(filename, backupName)
 		with open(filename, "w", encoding=encoding, newline="") as f:
 			f.write(self.__lineDisjoinedCode())
@@ -100,6 +105,8 @@ class SourceFile:
 
 
 	def setScopes(self, scopes):
+		if type(scopes) is tuple:
+			scopes = [scopes]
 		assert type(scopes) is list
 		self.__scopes = list(map(lambda scope: (self._intPos(scope[0]), self._intPos(scope[1])), scopes))
 
@@ -122,6 +129,20 @@ class SourceFile:
 		for mres in pat.finditer(self.__code, begin, end):
 			if not excludeClips or not self.isClipped(mres.start()):
 				yield mres
+	
+
+	# result - generator
+	def __findAllPatGen_Unscoped_SkipBlocks(self, pat, begin, end, excludeClips=True):
+		while mres := pat.search(self.__code, begin, end):
+			if mres.group("__cppcr_sbo"):
+				if self.isClipped(mres.start()):
+					begin = mres.end()
+				else:
+					begin = self.__blockEnds[mres.start()]
+			else:
+				begin = mres.end()
+				if not excludeClips or not self.isClipped(mres.start()):
+					yield mres
 
 
 	# result - generator
@@ -136,7 +157,7 @@ class SourceFile:
 	def __findAllPatGen_SkipBlocks(self, pat, excludeClips=True):
 		for (begin, end) in self.__scopes:
 			while mres := pat.search(self.__code, begin, end):
-				if mres.group("__cppcr_sb"):
+				if mres.group("__cppcr_sbo"):
 					if self.isClipped(mres.start()):
 						begin = mres.end()
 					else:
@@ -163,10 +184,10 @@ class SourceFile:
 				begin = mres.end()
 
 				
-	# pat has to be prepared with makeSkipBlocksPat (suffixed with "|(?P<__cppcr_sb>\{)")
+	# pat has to be prepared with makeSkipBlocksPat (suffixed with "|(?P<__cppcr_sbo>\{)")
 	def __findPatUnscoped_SkipBlocks(self, pat, begin, end=None, excludeClips=True):
 		while mres := pat.search(self.__code, begin, end):
-			if mres.group("__cppcr_sb"):
+			if mres.group("__cppcr_sbo"):
 				if self.isClipped(mres.start()):
 					begin = mres.end()
 				else:
@@ -219,14 +240,14 @@ class SourceFile:
 		else:    return None
 			
 		
-	# if skipBlocks, pat has to be prepared with makeSkipBlocksPat (suffixed with "|(?P<__cppcr_sb>\{)")
+	# if skipBlocks, pat has to be prepared with makeSkipBlocksPat (suffixed with "|(?P<__cppcr_sbo>\{)")
 	# result - generator
 	def findAllGen(self, pat, *, skipBlocks=False, excludeClips=True):
 		if type(pat) is not regex.Pattern:
 			pat =SourceFile.makeSkipBlocksPat(pat) if skipBlocks else  regex.compile(pat)
 		else:
 			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
-		srcMatchCopy = copy(self)
+		srcMatchCopy = self.copy()
 
 		if skipBlocks: gen = self.__findAllPatGen_SkipBlocks(pat, excludeClips)
 		else:          gen = self.__findAllPatGen(pat, excludeClips)
@@ -234,14 +255,14 @@ class SourceFile:
 			yield sm.SourceMatch(srcMatchCopy, mres, copySource=False)
 		
 			
-	# if skipBlocks, pat has to be prepared with makeSkipBlockPat (suffixed with "|(?P<__cppcr_sb>\{)")
+	# if skipBlocks, pat has to be prepared with makeSkipBlockPat (suffixed with "|(?P<__cppcr_sbo>\{)")
 	# result - generator
 	def findAllGen_Unscoped(self, pat, begin=None, end=None, *, skipBlocks=False, excludeClips=True):
 		if type(pat) is not regex.Pattern:
 			pat = SourceFile.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
 		else:
 			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
-		srcMatchCopy = copy(self)
+		srcMatchCopy = self.copy()
 		
 		if skipBlocks: gen = self.__findAllPatGen_Unscoped_SkipBlocks(pat, begin, end, excludeClips)
 		else:		   gen = self.__findAllPatGen_Unscoped(pat, begin, end, excludeClips)
@@ -374,7 +395,7 @@ class SourceFile:
 					self.__blockEnds[begins.pop()] = mres.start()
 			pos = mres.end()
 
-		assert begins == [], f"{self.__filename}{self._orgPos(begins[-1])}: {{ has no match."
+		assert begins == [], f"{self.__filename}:{self._orgPos(begins[-1])}: {{ has no match."
 
 
 	def __joinLines(self):
@@ -472,4 +493,4 @@ class SourceFile:
 
 
 	def makeSkipBlocksPat(re):
-		return regex.compile(re + r"|(?P<__cppcr_sb>\{)")
+		return regex.compile(re + r"|(?P<__cppcr_sbo>\{)")

@@ -27,7 +27,7 @@ class CppCrawler:
 
         
     def listSourceFiles(self, filepath):
-        return glob(filepath, root_dir=self.__sourceDir)
+        return glob(filepath, root_dir=self.__sourceDir, recursive=True)
 
 
     def loadSourceFile(self, filename):
@@ -38,15 +38,21 @@ class CppCrawler:
         return list(map(self.loadSourceFile, filenames))
         
 
-    # sourcePattern - glob's file path pattern, e.g., "*.h"
-    # return: collection of pairs: prototype-match, the type depends on the returnDict parameter
-    # returnDict: 'c' - dictionary grouped per class name, 's' - dictionary grouped per source file, False - list
-    # no namespaces support
-    def findMethDeclarations(self, prots, sourcePattern, *, returnDict='c'):
+    # sources - glob's file path pattern, e.g., "*.h" or a list of paths or a list SourceFile-s
+    # returnType: 
+    # 'c' - return dictionary { class_name : list[( prototype, (SourceFile, SourceMatch)|None )] }, 
+    # 's' - SourceMatchDict with prototypes as tags,
+    # 'l' - list[( prototype, (SourceFile, SourceMatch)|None )]
+    def findMethDeclarations(self, prots, sources, *, returnType='s'):
         protDict = CppCrawler.__makeMethProtsDict(prots)
 
-        for filename in self.listSourceFiles(sourcePattern):
-            src = SourceFile(os.path.join(self.__sourceDir, filename))
+        if type(sources) is str:
+            sources = self.listSourceFiles(sources)
+        if len(sources) > 0 and type(sources[0]) is str:
+            sources = [ SourceFile(os.path.join(self.__sourceDir, filename))
+                        for filename in sources ]
+
+        for src in sources:
             for cname in protDict:
                 if not cname: 
                     src.resetScopes()
@@ -58,27 +64,27 @@ class CppCrawler:
                     if res := src.find(protPat):
                         protRec[2] = (src, res)
                      
-        match returnDict:
-            case 'c':
-                for cname in protDict:
-                    protDict[cname] = list(map(lambda rec: (rec[0], rec[2]), protDict[cname]))
-                return protDict
-
+        match returnType:
             case 's':
-                d = {}
+                d = SourceMatchDict(tagged=True)
                 for recs in protDict.values():
                     for (prot, _, res) in recs:
                         if res:
-                            d.setdefault(res[0], []).append((prot, res[1]))
+                            d.setdefault(res[0], []).append((res[1], prot))
                         else:
-                            d.setdefault(None, []).append(prot)
+                            d.setdefault(None, []).append((None, prot))
                 return d
 
-            case False:
+            case 'c':
+                for cname in protDict:
+                    protDict[cname] = [ (rec[0], rec[2]) for rec in protDict[cname] ]
+                return protDict
+
+            case 'l':
                 return list(map(lambda rec: (rec[0], rec[2]), flatten(protDict.values())))
 
             case _:
-                assert False, "Invalid returnDict"
+                assert False, "Invalid returnType"
 
     
     # no namespaces support
@@ -91,11 +97,15 @@ class CppCrawler:
         return protDict
 
 
-    def findMethDefinitions(self, prots, sourcePattern):
+    def findMethDefinitions(self, prots, sources):
         protList = CppCrawler.__makeMethProtList(prots)
+
+        if type(sources) is str:
+            sources = self.listSourceFiles(sources)
+        if len(sources) > 0 and type(sources[0]) is str:
+            sources = [ SourceFile(os.path.join(self.__sourceDir, filename))
+                        for filename in sources ]
         
-        sources = [ SourceFile(os.path.join(self.__sourceDir, filename))
-                    for filename in self.listSourceFiles(sourcePattern) ]
         return self.find(protList, sources, skipBlocks=True)
 
 
@@ -182,10 +192,34 @@ class CppCrawler:
         return None
 
 
+    def _intScope(src, scope):
+        return tuple([src._intPos(scope[0]), src._intPos(scope[1])] + ([scope[2]] if len(scope) >= 3 else []))
+    
+
+    def _orgScope(src, scope):
+        print(src, scope)
+        return tuple([src._orgPos(scope[0]), src._orgPos(scope[1])] + ([scope[2]] if len(scope) >= 3 else []))
+
+
+    def __makeSourceScopeDict(self, sources):
+        if type(sources) is SourceScopeDict:
+            srcScopeDict = sources
+        elif type(sources) is dict:
+            srcScopeDict = { (s := src if type(src) is SourceFile else self.loadSourceFile(src)) : 
+                             [ (CppCrawler._intScope(s, scope), scope) for scope in scopes ]
+                             for src, scopes in sources.items() }
+        else:
+            if type(sources) is str:
+                sources = self.listSourceFiles(sources)
+            srcScopeDict = { (src if type(src) is SourceFile else self.loadSourceFile(src)) : 
+                             [ ((None, None), (None, None)) ]
+                             for src in sources }
+        return srcScopeDict
+
+
     def find(self, tpats, sources, *, tagResult=None, skipBlocks=False, perScope=False, tagFunc=None):
-        srcScopeDict = ( { src: [(None, None)] for src in sources } if type(sources) is list else 
-                         sources )
-        scopesTagged = SourceScopeDict.isDictTagged(srcScopeDict)
+        srcScopeDict = self.__makeSourceScopeDict(sources)
+        scopesTagged = srcScopeDict and len(next(iter(srcScopeDict.values()))[0][0]) == 3 # check len of first scope
 
         if not tpats:
             return SourceMatchDict(tagged=tagResult is None and scopesTagged or tagResult)
@@ -194,7 +228,6 @@ class CppCrawler:
 
         tpatsTagged = type(tpats[0]) is tuple
         if tagResult is None: tagResult = tpatsTagged or scopesTagged 
-        d = SourceMatchDict(tagged=tagResult)
 
         if tpatsTagged:
             def tpatPat(tpat): return tpat[0]
@@ -211,38 +244,41 @@ class CppCrawler:
         else:
             def tagMres(mres, tpat, scope): return mres
 
-        makePat = SourceFile.makeSkipBlockPat if skipBlocks else regex.compile
+        makePat = SourceFile.makeSkipBlocksPat if skipBlocks else regex.compile
         if tpatsTagged: 
             tpats = list(map(lambda tpat: (makePat(tpat[0]), tpat[1]), tpats))
         else:
             tpats = list(map(makePat, tpats))
-
+            
+        d = SourceMatchDict(tagged=tagResult)
         patsFound = [False] * len(tpats)
 
         for src in srcScopeDict:
             find = (src._SourceFile__findPatUnscoped_SkipBlocks 
                     if skipBlocks else src._SourceFile__findPatUnscoped)
-            d[src] = srcResults = []
-            for scope in srcScopeDict[src]:
+            srcResults = []
+            for (intScope, orgScope) in srcScopeDict[src]:
                 for i, tpat in enumerate(tpats):
                     if not perScope and patsFound[i]: continue
-                    if mres := find(tpatPat(tpat), scope[0], scope[1]):
-                        srcResults.append(tagMres(SourceMatch(src, mres), tpat, scope))
+                    if mres := find(tpatPat(tpat), intScope[0], intScope[1]):
+                        srcResults.append(tagMres(SourceMatch(src, mres), tpat, orgScope))
                         patsFound[i] = True
                     elif perScope:
-                        srcResults.append(tagMres(None, tpat, scope))
+                        srcResults.append(tagMres(None, tpat, orgScope))
+            if srcResults: d[src] = srcResults
 
         if not perScope:
-            d[None] = missings = []
+            missings = []
             for i, tpat in enumerate(tpats):
                 if not patsFound[i]: missings.append(tagMres(None, tpat, None))
+            if missings: d[None] = missings
+
         return d
 
 
-    def findAll(self, tpats, sources, *, tagResult=None, skipBlocks=False, perScope=False, tagFunc=None):
-        srcScopeDict = ( { src: [(None, None)] for src in sources } if type(sources) is list else 
-                         sources )
-        scopesTagged = SourceScopeDict.isDictTagged(srcScopeDict)
+    def findAll(self, tpats, sources, *, tagResult=None, skipBlocks=False, tagFunc=None):
+        srcScopeDict = self.__makeSourceScopeDict(sources)
+        scopesTagged = srcScopeDict and len(next(iter(srcScopeDict.values()))[0][0]) == 3 # check len of first scope
 
         if not tpats:
             return SourceMatchDict(tagged=tagResult is None and scopesTagged or tagResult)
@@ -251,7 +287,6 @@ class CppCrawler:
 
         tpatsTagged = type(tpats[0]) is tuple
         if tagResult is None: tagResult = tpatsTagged or scopesTagged 
-        d = SourceMatchDict(tagged=tagResult)
 
         if tpatsTagged:
             def tpatPat(tpat): return tpat[0]
@@ -268,13 +303,31 @@ class CppCrawler:
         else:
             def tagMres(mres, tpat, scope): return mres
 
+        makePat = SourceFile.makeSkipBlocksPat if skipBlocks else regex.compile
+        if tpatsTagged: 
+            tpats = list(map(lambda tpat: (makePat(tpat[0]), tpat[1]), tpats))
+        else:
+            tpats = list(map(makePat, tpats))
+            
+        d = SourceMatchDict(tagged=tagResult)
+        patsFound = [False] * len(tpats)
+
         for src in srcScopeDict:
-            findAll = src.findAllGenUnscoped_SkipBlocks if skipBlocks else src.findAllGenUnscoped
-            d[src] = srcResults = []
-            for scope in srcScopeDict[src]:
-                for tpat in tpats:
-                    for mres in findAll(tpatPat(tpat), scope[0], scope[1]):
-                        srcResults.append(tagMres(mres, tpat, scope))
+            findAll = (src._SourceFile__findAllPatGen_Unscoped_SkipBlocks 
+                       if skipBlocks else src._SourceFile__findAllPatGen_Unscoped)
+            srcResults = []
+            for (intScope, orgScope) in srcScopeDict[src]:
+                for i, tpat in enumerate(tpats):
+                    for mres in findAll(tpatPat(tpat), intScope[0], intScope[1]):
+                        srcResults.append(tagMres(SourceMatch(src, mres), tpat, orgScope))
+                        patsFound[i] = True
+            if srcResults: d[src] = srcResults
+            
+        missings = []
+        for i, tpat in enumerate(tpats):
+            if not patsFound[i]: missings.append(tagMres(None, tpat, None))
+        if missings: d[None] = missings
+
         return d
 
     

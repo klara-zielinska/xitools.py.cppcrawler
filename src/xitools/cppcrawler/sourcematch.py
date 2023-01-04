@@ -5,7 +5,7 @@ from copy import copy
 class SourceMatch:
     def __init__(self, sourcefile, mres, *, copySource=True):
         assert mres
-        self.__sourcefile = copy(sourcefile) if copySource else sourcefile
+        self.__sourcefile = sourcefile.copy() if copySource else sourcefile
         self.__mres = mres
 
     def __getitem__(self, *groups):

@@ -6,10 +6,22 @@ import regex
 
 class SourceMatchDict(dict):
 
+    class Iterator:
+        def __init__(self, it):
+            self.__it = it
+
+        def __next__(self):
+            return res if (res := next(self.__it)) else next(self.__it)
+
+
     def __init__(self, *arg, **kw):
         tagged = kw.pop('tagged', False)
         super(SourceMatchDict, self).__init__(*arg, **kw)
         self.__tagged = tagged
+
+
+    def __iter__(self):
+        return SourceMatchDict.Iterator(iter(self.keys()))
 
 
     def __add__(self, other):
