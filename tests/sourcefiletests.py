@@ -463,3 +463,6 @@ class SourceFileTests(TestCase):
         self.assertTrue(filecmp.cmp(dataFilepath("civ", "algorithm2.h"), tmpFilepath(self.testSuit, "algo.h"), False))
         self.assertTrue(filecmp.cmp(dataFilepath("civ", "CvUnitSort.h"), tmpFilepath(self.testSuit, "backup/algo.h"), 
                                     False))
+        
+        self.assertRaises(FileExistsError, src1.save, backupDir=tmpFilepath(self.testSuit, "backup"), force=True)
+        # because the backup file already exists
