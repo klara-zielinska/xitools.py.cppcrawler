@@ -56,12 +56,13 @@ class CppCrawler:
             for cname in protDict:
                 if not cname: 
                     src.resetScopes()
-                elif src.tryScopeToClassBody(cname, (None, None)) < 0: # if class not found
+                elif not src.tryScopeToClassBody(cname, (None, None)):
                     continue
 
                 for protRec in protDict[cname]:
                     [_, protPat, _] = protRec
                     if res := src.find(protPat):
+                        assert not protRec[2], str(protRec)
                         protRec[2] = (src, res)
                      
         match returnType:

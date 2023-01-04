@@ -34,8 +34,12 @@ class SourceFile:
 
 
 	# returns internal code representation
-	def _code(self):
+	def _intCode(self):
 		return self.__code
+
+
+	def code(self, start=None, end=None):
+		return self.__code[self._intPos(start):self._intPos(end)]
 
 
 	def copy(self):
@@ -332,6 +336,18 @@ class SourceFile:
 	# the currently active scopes if given None
 	def tryScopeToNamespaceBody(self, nsname, scopes=None):
 		return self.__tryScopeToBlockByPrefix(Syntax.makeNamespacePrefixRe(f"(?:{nsname})"), scopes)
+
+
+	def lineStart(self, pos):
+		ln = self._intLineNo(self._intPos(pos))
+		return self._orgPos(0 if ln == 0 else self.__lineEnds[ln - 1])
+
+
+	def findFirstBlock(self, pos):
+		if mres := self.__findPatUnscoped(regex.compile("{"), self._intPos(pos)):
+			return (self._orgPos(mres.start()), self._orgPos(self.__blockEnds[mres.start()] + 1))
+		else:
+			return None
 	
 
 	def __tryScopeToBlockByPrefix(self, prefixRe, scopes=None):
@@ -458,6 +474,11 @@ class SourceFile:
 		self.__lineJoins = numpy.array(list(reversed(newLineJoins)))
 		self.__recalc_lineJoinsOrg()
 
+
+	def _intLineNo(self, pos):
+		return numpy.searchsorted(self.__lineEnds, pos, 'right')
+
+
 	def _orgPos(self, pos):
 		if pos is None:
 			return None
@@ -478,13 +499,13 @@ class SourceFile:
 
 
 	def _intLocation(self, pos):
-		ln = numpy.searchsorted(self.__lineEnds, pos, 'right')
+		ln = self._intLineNo(pos)
 		col = pos - self.__lineEnds[ln-1] if ln > 0 else pos
 		return (ln, col)
 	
 
 	def _intOrgLocation(self, pos):
-		ln = numpy.searchsorted(self.__lineEnds, pos, 'right')
+		ln = self._intLineNo(pos)
 		lnStart = self.__lineEnds[ln-1] if ln > 0 else 0
 		if joinsBefore := self._lineJoinsBefore(pos):
 			lastJoin = self.__lineJoins[joinsBefore-1]
