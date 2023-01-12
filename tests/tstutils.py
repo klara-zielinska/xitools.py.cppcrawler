@@ -30,3 +30,4 @@ def prepareTmpDir(testSuit):
     if os.path.isdir(dir):
         shutil.rmtree(dir)
     os.mkdir(dir)
+    return dir

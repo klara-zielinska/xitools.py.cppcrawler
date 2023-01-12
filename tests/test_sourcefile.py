@@ -1,6 +1,6 @@
 from xitools.cppcrawler import SourceFile
 from unittest import TestCase
-from testutils import *
+from tstutils import *
 import filecmp
 
 
@@ -284,7 +284,7 @@ class SourceFileTests(TestCase):
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
         
         src.replaceMatch(src.find("detail"), "another_detail")
-        self.assertEqual(src._code()[src._intPos(1587) : src._intPos(1587) + 14], "another_detail")
+        self.assertEqual(src._intCode()[src._intPos(1587) : src._intPos(1587) + 14], "another_detail")
         
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
@@ -341,18 +341,18 @@ class SourceFileTests(TestCase):
                          "replacment of: return name<O, D, V>(static_cast<const D&>(f), val); \t}")
         
 
-    def test_replaceAll(self):
+    def test_replace(self):
         
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
         
-        src.replaceAll("detail", "another_detail")
+        src.replace("detail", "another_detail")
 
-        self.assertEqual(src._code()[src._intPos(1587) : src._intPos(1587) + 14], "another_detail")
+        self.assertEqual(src._intCode()[src._intPos(1587) : src._intPos(1587) + 14], "another_detail")
         
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
 
-        src.replaceAll("namespace ", "namespace\t")
+        src.replace("namespace ", "namespace\t")
 
         self.assertEqual(list(map(lambda mres: mres.group(0), src.findAllGen(r"namespace\s"))), 
                          ["namespace\t"]*3)
@@ -360,16 +360,23 @@ class SourceFileTests(TestCase):
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
         
-        src.replaceAll(r"namespace (\w+)\b", lambda m: f"namespace another_{m.group(1)}")
+        src.replace(r"namespace (\w+)\b", lambda m: f"namespace another_{m.group(1)}")
 
         self.assertEqual(list(map(lambda mres: mres.group(1), src.findAllGen(r"namespace\s(\w+)\b"))), 
                          ["another_detail", "another_map_fun_details", "another_algo"])
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+
+        src.replace(r"namespace (\w+)\b", lambda m: f"namespace another_{m.group(1)}", 2)
+
+        self.assertEqual(list(map(lambda mres: mres.group(1), src.findAllGen(r"namespace\s(\w+)\b"))), 
+                         ["another_detail", "another_map_fun_details", "algo"])
 
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
         
-        src.replaceAll(r"return name<O, D, V>\(static_cast<const D&>\(f\), val\); \t\}",
-                       "return name<O, D, V>(static_cast<const D&>(f), val); \t}")
+        src.replace(r"return name<O, D, V>\(static_cast<const D&>\(f\), val\); \t\}",
+                    "return name<O, D, V>(static_cast<const D&>(f), val); \t}")
 
         expectedLineJoins = [ 
              690,   716,   799,   803,   875,   903,   907,   975,   979,   994,  1178,
@@ -466,3 +473,11 @@ class SourceFileTests(TestCase):
         
         self.assertRaises(FileExistsError, src1.save, backupDir=tmpFilepath(self.testSuit, "backup"), force=True)
         # because the backup file already exists
+
+
+    def test_loadCvGlobals(self):
+        
+        src = SourceFile(dataFilepath("civ2", "CvGlobals.cpp"))
+        src.saveAs(tmpFilepath(self.testSuit, "CvGlobals.cpp"))
+        self.assertTrue(filecmp.cmp(dataFilepath("civ2", "CvGlobals.cpp"), 
+                                    tmpFilepath(self.testSuit, "CvGlobals.cpp"), False))

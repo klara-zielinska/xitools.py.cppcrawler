@@ -5,6 +5,27 @@ def flatten(l):
     return [item for sublist in l for item in sublist]
 
 
+def _maxCommonPrefix(s1, s2):
+	minlen = min(len(s1), len(s2))
+	for i in range(minlen):
+		if s1[i] != s2[i]: return s1[:i]
+	return s1[:minlen]
+
+
+def maxCommonPrefix(*strings):
+	if len(strings) == 1:
+		try: 
+			iter(strings[0])
+			strings = strings[0]
+		except TypeError: pass
+
+	if not strings: return ""
+	comPrefix = strings[0]
+	for s in strings[1:]:
+		comPrefix = _maxCommonPrefix(comPrefix, s)
+	return comPrefix
+
+
 def insertRangeSorted(ranges, begin, end):
 	if begin is None:
 

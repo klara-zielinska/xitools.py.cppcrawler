@@ -1,24 +1,44 @@
-from tokenize import group
+from .utils import *
 import regex
 
 _commentRe  = r"//.*|/\*(?:[^\*]|\*[^/])*\*/"
 _commentPat = regex.compile(_commentRe)
 _stringRe   = r'"(?:[^"\\]|\r\n|\\.)*"'
 _stringPat  = regex.compile(_stringRe)
-_charRe  = r"'(?:[^'\\]|\r\n|\\.)*'"
-_charPat = regex.compile(_charRe)
-_sxRe    = r"\s|" + _commentRe # c++ space extra pattern (comments are white-spaces)
-_sxPat   = regex.compile(_sxRe)
-_clipRe  = f"{_commentRe}|{_stringRe}|{_charRe}"
-_clipPat = regex.compile(_clipRe)
-_optValRe  = f"{_stringRe}|{_charRe}|[\w\.-]+"
-_optValPat = regex.compile(_optValRe)
+_charRe     = r"'(?:[^'\\]|\r\n|\\.)*'"
+_charPat    = regex.compile(_charRe)
+_sxRe       = r"\s|" + _commentRe # c++ space extra pattern (comments are white-spaces)
+_sxPat      = regex.compile(_sxRe)
+_clipRe     = f"{_commentRe}|{_stringRe}|{_charRe}"
+_clipPat    = regex.compile(_clipRe)
+_optValRe   = f"{_stringRe}|{_charRe}|[\w\.-]+"
+_optValPat  = regex.compile(_optValRe)
 
 _clipBeginPat   = regex.compile(r"['\"]|//|/\*|\r\n")
 _endCharPat     = regex.compile(r"'|\r\n|$")
 _endStrPat      = regex.compile(r'"|\r\n|$')
 _endComment1Pat = regex.compile(r'\r\n|$')
 _endCommentNOrNlPat = regex.compile(r'\*/|\r\n|$')
+
+_methDec0Pat = regex.compile(r"(?:(\w+)\s*::\s*)?(~\s*)?(\w+)\s*\(\s*")
+_methDec1Pat = regex.compile(r"\s*(\w+)?(?P<opt>\s*=)?\s*")
+_methDec2Pat = regex.compile(r"\s*,?\s*")
+_methDec3Pat = regex.compile(r"\)(\s*const)?")
+_tpOps0Pat = regex.compile(r"(?!\s)(?:[\*&]|const\b|\s+)*")
+_tpOps1Pat = regex.compile(r"(?:[\*&]|const\b|\s+)*(?<!\s)")
+_tpSpaceRepPat = regex.compile(r"(\b\s+\b)|\s+")
+_tpBuiltInPat = regex.compile(r"(?:unsigned\s+)?(?:(?:short|long(?:\s+long)?)(?:\s+int)?|int|char)")
+_tpName0Pat = regex.compile(r"\s*(\w+)")
+_tpName1Pat = regex.compile(r"\s*::\s*(\w+)")
+_tpArrPat = regex.compile(r"\s*\[[^]]*]")
+_tempArgs0Pat = regex.compile(r"\s*<\s*")
+_tempArgs1Pat = regex.compile(r"\s*,\s*")
+_tempArgs2Pat = regex.compile(r"\s*>")
+_lineStartPat = regex.compile(r"^|\r\n")
+_indentPat = regex.compile(r"(?<=^|\r\n)([ \t]*+)")
+_expr0Pat = regex.compile(r"\s*+[^\(\)\[\],]+(?P<popen>\(|\[)?(?<!\s)")
+_expr1Pat = regex.compile(r"\s*,?\s*")
+_expr2Pat = regex.compile(r"[\)\]]")
 
 
 class Syntax:
@@ -28,6 +48,15 @@ class Syntax:
     stringPat  = _stringPat
     charRe     = _charRe
     charPat    = _charPat
+
+    
+    def unindent(code):
+        comPrefix = maxCommonPrefix(_indentPat.findall(code))
+        return regex.sub(f"(^|\r\n){comPrefix}", lambda mres: mres.group(1), code)
+        
+
+    def indent(code, ind):
+        return _lineStartPat.sub(lambda mres: mres.group(0) + ind, code)
 
 
     def makeClassPrefixRe(cname):
@@ -66,23 +95,27 @@ class Syntax:
     # - no argument names,
     # - exactly 1 space after , and between ) and const at the end, no other spaces,
     # - no comments
-    def makeMethProtRe(prot, *, resultType=False):
+    def makeMethProtRe(prot):
         typeRe = r"[^\),]+"
         protRe = r"(?:(\w+)::)?(~?\w+)\(({tp})?(?:, ({tp}))*\)( const)?".format(tp = typeRe)
         mres = regex.fullmatch(protRe, prot)
-        if resultType:
+        if False: # to do
             protRegex = r"(?<=(?:^|[;\{{}}])(?:{com}|\s)*)[\w\*&:][\w\*&:<>,\s]*?\s*\b".format(com = _commentRe)
         else:
-            protRegex = ""
+            protRegex = "(?<!::\s*)"
         if mres.group(1):
             protRegex += f"{mres.group(1)}\\s*::\\s*"
         protRegex += f"(?P<methname>{mres.group(2)})\\s*\(\\s*"
         if mres.group(3): #
-            protRegex += Syntax.makeTypeRe(mres.group(3)) + r"\s*(?:\b\w+\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?"  #
-            for tp in mres.captures(4): #
-                protRegex += r",\s*" + Syntax.makeTypeRe(tp) + r"\s*(?:\b\w+\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?"
+            protRegex += (Syntax.makeTypeRe(mres.group(3)) + 
+                          r"\s*(?:\b(?P<argname>\w+)\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?")
+            for tp in mres.captures(4):
+                protRegex += (r",\s*" + Syntax.makeTypeRe(tp) + 
+                              r"\s*(?:\b(?P<argname>\w+)\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?")
+        else:
+            protRegex += "(?P<argname>a^)?"
         protRegex += r"\)"
-        if mres.group(5): #
+        if mres.group(5):
             protRegex += r"\s*const"
         return protRegex
 
@@ -93,14 +126,129 @@ class Syntax:
         return code
 
 
+    def _parseTempArgsProt(s, begin=0):
+        mres = _tempArgs0Pat.match(s, begin)
+        if not mres: return None
+        if s[mres.end()] == '>': return ("<>", mres.end() + 1)
+
+        (tp, begin) = Syntax.parseTypeProt(s, mres.end())
+        args = "<" + tp
+        while mres := _tempArgs1Pat.match(s, begin):
+            args += "`"
+            (tp, begin) = Syntax.parseTypeProt(s, mres.end())
+            args += tp
+        return (args + ">", _tempArgs2Pat.match(s, begin).end())
+
+
+    def parseTypeProt(s, begin=0):
+        mres = _tpOps0Pat.match(s, begin)
+        tp = mres.group(0)
+        begin = mres.end()
+        
+        if mres := _tpBuiltInPat.match(s, begin):
+            tp += mres.group(0)
+            begin = mres.end()
+
+        else:
+            mres = _tpName0Pat.match(s, begin)
+            if not mres: return None
+
+            tp += mres.group(1)
+            begin = mres.end()
+            match Syntax._parseTempArgsProt(s, begin):
+                case (args, begin): tp += args
+
+            while mres := _tpName1Pat.match(s, begin):
+                tp += "::" + mres.group(1)
+                begin = mres.end()
+                match Syntax._parseTempArgsProt(s, begin):
+                    case (args, begin): tp += args
+                    
+        if mres := _tpArrPat.match(s, begin):
+            tp += mres.group(0)
+            begin = mres.end()
+        
+        mres = _tpOps1Pat.match(s, begin)
+        tp += mres.group(0)
+
+        tp = _tpSpaceRepPat.sub(lambda m: "%" if m.group(1) else "", tp)
+        return (tp, mres.end())
+
+
+    def parseExpr(s, begin=0):
+        mres = _expr0Pat.match(s, begin)
+        if not mres: return None
+
+        expr = mres.group(0)
+        begin = mres.end()
+        if opSym := mres.group("popen"):
+            def readArg(pos):
+                match Syntax.parseExpr(s, begin):
+                    case (exprArg, pos):
+                        mres2 = _expr1Pat.match(s, pos)
+                        exprArg += mres2.group(0)
+                        pos = mres2.end()
+                        return (pos, exprArg)
+                    case None:
+                        return None
+            while res := readArg(begin): 
+                begin = res[0]
+                expr += res[1]
+
+            mres = _expr2Pat.match(s, begin)
+            match opSym, mres.group(0):
+                case '(', ')': pass
+                case '[', ']': pass
+                case _:        return None
+            expr += s[begin]
+            begin += 1
+            
+        return (expr, begin)
+
+
+    def parseMethDeclaration(s, begin=0):
+        mres = _methDec0Pat.match(s, begin)
+        if not mres: return None
+
+        contName = mres.group(1)
+        destru = mres.group(2)
+        name = mres.group(3)
+        begin = mres.end()
+
+        targs = []
+        nargs = []
+        if s[mres.end()] != ')':
+            def readArg(pos):
+                match Syntax.parseTypeProt(s, pos):
+                    case (tp, pos):
+                        targs.append(tp)
+                        mres2 = _methDec1Pat.match(s, pos)
+                        nargs.append(mres2.group(1))
+                        pos = mres2.end()
+                        if mres2.group("opt") and (res := Syntax.parseExpr(s, pos)):
+                            pos = res[1]
+                        mres2 = _methDec2Pat.match(s, pos)
+                        return (mres2.end(), None)
+                    case None:
+                        return None
+            while (res := readArg(begin)): begin = res[0]
+
+        mres = _methDec3Pat.match(s, begin)
+        if not mres: return None
+        const = mres.group(1) is not None
+        
+        prot = contName + "::" if contName else "" 
+        prot += "~" if destru else ""
+        prot += name + "(" + ", ".join(targs) + ")"
+        if const: prot += " const"
+        return (prot, nargs, mres.end())
+
+    
     # prot in normal form (see above)
     # no template specialization support (e.g. A<std::vector<int>>::foo() )
     def extractProtContainerName(prot):
-        div = prot.split("::", 1)
-        if len(div) == 1:
-            return (None, div[0])
-        else:
-            return tuple(div)
+        mres = _methDec0Pat.match(prot)
+        return (mres.group(1), prot[mres.start(3):])
     
 
     def tempPar(n):

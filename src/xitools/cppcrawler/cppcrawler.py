@@ -35,7 +35,7 @@ class CppCrawler:
 
 
     def loadSourceFiles(self, filenames):
-        return list(map(self.loadSourceFile, filenames))
+        return list(map(self.loadSourceFile, flatten(map(self.listSourceFiles, filenames))))
         
 
     # sources - glob's file path pattern, e.g., "*.h" or a list of paths or a list SourceFile-s
@@ -198,7 +198,6 @@ class CppCrawler:
     
 
     def _orgScope(src, scope):
-        print(src, scope)
         return tuple([src._orgPos(scope[0]), src._orgPos(scope[1])] + ([scope[2]] if len(scope) >= 3 else []))
 
 
@@ -257,16 +256,14 @@ class CppCrawler:
         for src in srcScopeDict:
             find = (src._SourceFile__findPatUnscoped_SkipBlocks 
                     if skipBlocks else src._SourceFile__findPatUnscoped)
-            srcResults = []
             for (intScope, orgScope) in srcScopeDict[src]:
                 for i, tpat in enumerate(tpats):
                     if not perScope and patsFound[i]: continue
                     if mres := find(tpatPat(tpat), intScope[0], intScope[1]):
-                        srcResults.append(tagMres(SourceMatch(src, mres), tpat, orgScope))
+                        d.insert(src, tagMres(SourceRegexMatch(src, mres), tpat, orgScope))
                         patsFound[i] = True
                     elif perScope:
-                        srcResults.append(tagMres(None, tpat, orgScope))
-            if srcResults: d[src] = srcResults
+                        d.insert(src, tagMres(None, tpat, orgScope))
 
         if not perScope:
             missings = []
@@ -316,13 +313,11 @@ class CppCrawler:
         for src in srcScopeDict:
             findAll = (src._SourceFile__findAllPatGen_Unscoped_SkipBlocks 
                        if skipBlocks else src._SourceFile__findAllPatGen_Unscoped)
-            srcResults = []
             for (intScope, orgScope) in srcScopeDict[src]:
                 for i, tpat in enumerate(tpats):
                     for mres in findAll(tpatPat(tpat), intScope[0], intScope[1]):
-                        srcResults.append(tagMres(SourceMatch(src, mres), tpat, orgScope))
+                        d.insert(src, tagMres(SourceRegexMatch(src, mres), tpat, orgScope))
                         patsFound[i] = True
-            if srcResults: d[src] = srcResults
             
         missings = []
         for i, tpat in enumerate(tpats):

@@ -2,6 +2,7 @@ from . import sourcematch as sm
 from . import sourcescopedict as ssd
 import bisect
 import regex
+import os
 
 
 class SourceMatchDict(dict):
@@ -16,6 +17,7 @@ class SourceMatchDict(dict):
 
     def __init__(self, *arg, **kw):
         tagged = kw.pop('tagged', False)
+        self.__sourceDir = kw.pop('sourceDir', None)
         super(SourceMatchDict, self).__init__(*arg, **kw)
         self.__tagged = tagged
 
@@ -36,9 +38,16 @@ class SourceMatchDict(dict):
         return res
 
 
-    def insert(self, src, match):
-        assert not self.__tagged or len(match) >= 2
-        bisect.insort(self.setdefault(src, []), match)
+    def sourceDir(self):
+        return self.__sourceDir
+
+
+    def insert(self, src, tmatch):
+        assert not self.__tagged or len(tmatch) == 2
+        if self.__tagged and not tmatch[0] or not tmatch:
+            self.setdefault(src, []).insert(0, tmatch)
+        else:
+            bisect.insort(self.setdefault(src, []), tmatch)
 
 
     def filter(self, predicate):
@@ -82,3 +91,16 @@ class SourceMatchDict(dict):
             for src in self:
                 scopes[src] = list(map(lambda m: (m.end(), None), self[src]))
         return scopes
+
+
+    def getSource(self, filename):
+        if self.__sourceDir:
+            filename = os.path.abspath(self.__sourceDir + "/" + filename)
+        else:
+            filename = os.path.abspath(filename)
+        found = None
+        for src in self:
+            if src.filename() == filename:
+                if found: raise EnvironmentError("Multiple sources")
+                else:     found = src
+        return found

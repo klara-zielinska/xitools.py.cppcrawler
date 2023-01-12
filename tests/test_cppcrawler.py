@@ -2,7 +2,7 @@ from xitools.cppcrawler import CppCrawler
 from xitools.cppcrawler import SourceFile
 from xitools.cppcrawler import flatten
 from unittest import TestCase
-from testutils import *
+from tstutils import *
 import filecmp
 
 
@@ -13,7 +13,7 @@ class CppCrawlerTests(TestCase):
 
     def setUpClass():
         prepareTmpDir(CppCrawlerTests.testSuit)
-        #os.mkdir(tmpFilepath(SourceFileTests.testSuit, "backup"))
+        os.mkdir(tmpFilepath(CppCrawlerTests.testSuit, "test_replaceSourceMatches"))
 
 
     def test_listSourceFiles(self):
@@ -368,3 +368,21 @@ class CppCrawlerTests(TestCase):
                                                          "template(5581, None)_5584", "struct|class(5581, None)_5595"])
               })
         '''
+
+
+    def test_replaceSourceMatches(self):
+        
+        tmpdir = tmpFilepath(self.testSuit, "test_replaceSourceMatches")
+        crawler = CppCrawler(dataFilepath("civ"))
+
+        
+        res = crawler.findAll( [ ("struct|class", "cs"), ("template", "tm") ], 
+                               { "algorithm2.h" : [(1598, 1640, "a1"), (5581, 5610, "a2")], 
+                                 "CvUnitSort.h" : [(None, 400, "cus")] })
+        self.assertEqual(res.pop(None, []), [])
+        crawler.replaceSourceMatches(res, lambda tm: tm[0].group(0) + f"/*{str(tm[1])}*/")
+
+        for src in res:
+            newfilename = os.path.join(tmpdir, os.path.basename(src.filename()))
+            src.saveAs(newfilename, force=True)
+            self.assertTrue(filecmp.cmp(src.filename(), newfilename))

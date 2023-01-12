@@ -38,7 +38,7 @@ class SourceFile:
 		return self.__code
 
 
-	def code(self, start=None, end=None):
+	def intCode(self, start=None, end=None):
 		return self.__code[self._intPos(start):self._intPos(end)]
 
 
@@ -216,7 +216,7 @@ class SourceFile:
 		if begin is not None: begin = self._intPos(begin)
 		if end   is not None: end   = self._intPos(end)
 		mres = self.__matchPatUnscoped(pat, begin, end, excludeClips)
-		return sm.SourceMatch(self, mres) if mres else None
+		return sm.SourceRegexMatch(self, mres) if mres else None
 
 
 	def findUnscoped(self, pat, begin=None, end=None, *, skipBlocks=False, excludeClips=True):
@@ -229,7 +229,7 @@ class SourceFile:
 
 		if skipBlocks: mres = self.__findPatUnscoped_SkipBlocks(pat, begin, end, excludeClips)
 		else:          mres = self.__findPatUnscoped(pat, begin, end, excludeClips)
-		return sm.SourceMatch(self, mres) if mres else None
+		return sm.SourceRegexMatch(self, mres) if mres else None
 		
 
 	def find(self, pat, *, skipBlocks=False, excludeClips=True):
@@ -240,7 +240,7 @@ class SourceFile:
 
 		if skipBlocks: mres = self.__findPat_SkipBlocks(pat, excludeClips)
 		else:          mres = self.__findPat(pat, excludeClips)
-		if mres: return sm.SourceMatch(self, mres)
+		if mres: return sm.SourceRegexMatch(self, mres)
 		else:    return None
 			
 		
@@ -256,7 +256,7 @@ class SourceFile:
 		if skipBlocks: gen = self.__findAllPatGen_SkipBlocks(pat, excludeClips)
 		else:          gen = self.__findAllPatGen(pat, excludeClips)
 		while mres := next(gen, None):
-			yield sm.SourceMatch(srcMatchCopy, mres, copySource=False)
+			yield sm.SourceRegexMatch(srcMatchCopy, mres, copySource=False)
 		
 			
 	# if skipBlocks, pat has to be prepared with makeSkipBlockPat (suffixed with "|(?P<__cppcr_sbo>\{)")
@@ -271,7 +271,7 @@ class SourceFile:
 		if skipBlocks: gen = self.__findAllPatGen_Unscoped_SkipBlocks(pat, begin, end, excludeClips)
 		else:		   gen = self.__findAllPatGen_Unscoped(pat, begin, end, excludeClips)
 		while mres := next(gen, None):
-			yield sm.SourceMatch(srcMatchCopy, mres, copySource=False)
+			yield sm.SourceRegexMatch(srcMatchCopy, mres, copySource=False)
 
 
 	def replaceMatch(self, match, repl):
@@ -280,29 +280,35 @@ class SourceFile:
 
 	# the result is going to be invalid if matches are not sorted and the parameter sorted=True
 	def replaceMatches(self, matches, repl, *, sorted=False):
+		if not matches:
+			return
 		if not sorted:
 			matches.sort(key=lambda m: (m.start(), m.end()))
 		if type(repl) is str:
 			_repl = repl
 			repl = lambda _: _repl
+		if type(matches[0]) == tuple: # is tagged
+			def getMres(tm): return tm[0]
+		else:
+			def getMres(m): return m
 		shifts = []
 		newCode = []
 		chunkBegin = 0
-		for m in matches:
-			m = m._SourceMatch__mres
-			newCode.append(self.__code[chunkBegin:m.start()])
-			replStr = repl(m)
+		for tm in matches:
+			mres = getMres(tm)
+			newCode.append(self.__code[chunkBegin:mres._intStart()])
+			replStr = repl(tm)
 			assert "\\\r\n" not in replStr
 			newCode.append(replStr)
-			chunkBegin = m.end()
-			shifts.append((m.start(), m.end(), len(replStr) - len(m.group(0))))
+			chunkBegin = mres._intEnd()
+			shifts.append((mres._intStart(), mres._intEnd(), len(replStr) - len(mres.group(0))))
 		newCode.append(self.__code[chunkBegin:])
 		self.__code = "".join(newCode)
 		self.__shiftAndClearLineJoins(shifts)
 		self.recalcCode()
 
 
-	def replaceAll(self, pat, repl, *, excludeClips=True):
+	def replace(self, pat, repl, count=0, *, excludeClips=True):
 		if type(pat) is not regex.Pattern:
 			pat = regex.compile(pat)
 		if type(repl) is str:
@@ -319,23 +325,28 @@ class SourceFile:
 				shifts.append( (mres.start(), mres.end(), len(repStr) - len(mres.group(0))) )
 				return repStr
 
+		replaced = 0 
 		for (begin, end) in self.__scopes:
-			self.__code = pat.sub(inRepl, self.__code, pos=begin, endpos=end)
+			actCount = 0 if count == 0 else count - replaced
+			(self.__code, foundCount) = pat.subn(inRepl, self.__code, actCount, pos=begin, endpos=end)
+			replaced += foundCount
 		self.__shiftAndClearLineJoins(shifts)
 		self.recalcCode()
+
+		return replaced
 
 
 	# heuristic selection of the body of the given class
 	# selection = scoping to
 	# return: the position of the class definition or -1 in none
 	def tryScopeToClassBody(self, cname, scopes=None):
-		return self.__tryScopeToBlockByPrefix(Syntax.makeClassPrefixRe(f"(?:{cname})"), scopes)
+		return self.tryScopeToBlockByPrefix(Syntax.makeClassPrefixRe(f"(?:{cname})"), scopes)
 		
 
 	# scope file to all bodis of the namespace nsname that start in the given scopes or in
 	# the currently active scopes if given None
 	def tryScopeToNamespaceBody(self, nsname, scopes=None):
-		return self.__tryScopeToBlockByPrefix(Syntax.makeNamespacePrefixRe(f"(?:{nsname})"), scopes)
+		return self.tryScopeToBlockByPrefix(Syntax.makeNamespacePrefixRe(f"(?:{nsname})"), scopes)
 
 
 	def lineStart(self, pos):
@@ -350,13 +361,13 @@ class SourceFile:
 			return None
 	
 
-	def __tryScopeToBlockByPrefix(self, prefixRe, scopes=None):
+	def tryScopeToBlockByPrefix(self, prefixRe, scopes=None):
 		if scopes:
 			oldScopes = self.__scopes
 			self.setScopes(scopes)
 
-		nsPrefixPat = SourceFile.makeSkipBlocksPat(prefixRe)
-		nsScopes = []
+		prefixPat = SourceFile.makeSkipBlocksPat(prefixRe)
+		foundScopes = []
 
 		pos = 0
 		for scope in self.__scopes:
@@ -366,14 +377,15 @@ class SourceFile:
 				tag = scopes[2]
 			if begin is not None and pos < begin: 
 				pos = begin
-			while (end is None or pos < end) and (mres := self.__findPatUnscoped_SkipBlocks(nsPrefixPat, pos, end)):
+			while (end is None or pos < end) and (mres := self.__findPatUnscoped_SkipBlocks(prefixPat, pos, end)):
 				pos = mres.end()
+				assert pos-1 in self.__blockEnds, f"No block end: {self._orgPos(pos-1)}{self._intOrgLocation(pos-1)}, {self}"
 				foundScope = tuple([pos, self.__blockEnds[pos - 1]] + ([tag] if tagged else []))
-				nsScopes.append(foundScope)
+				foundScopes.append(foundScope)
 				pos = self.__blockEnds[pos - 1] + 1
 
-		if nsScopes:
-			self.__scopes = nsScopes
+		if foundScopes:
+			self.__scopes = foundScopes
 			return True
 		else:
 			if scopes: self.__scopes = oldScopes
@@ -410,6 +422,10 @@ class SourceFile:
 					assert begins, f"{self.__filename}:{self._orgPos(pos)}: }} has no match."
 					self.__blockEnds[begins.pop()] = mres.start()
 			pos = mres.end()
+
+		if begins != []:
+			with open("dump.cpp", "w", encoding="utf-8", newline="") as f:
+				f.write(self.__code)
 
 		assert begins == [], f"{self.__filename}:{self._orgPos(begins[-1])}: {{ has no match."
 
