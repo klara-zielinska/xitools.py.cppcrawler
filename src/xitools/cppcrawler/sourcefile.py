@@ -119,7 +119,7 @@ class SourceFile:
 		insertRangeSorted(self.__scopes, self._intPos(begin), self._intPos(end))
 
 
-	def isClipped(self, pos):
+	def isClippedInt(self, pos):
 		for (start, end, _) in self.__clipRanges:
 			if start > pos:
 				return False
@@ -131,7 +131,7 @@ class SourceFile:
 	# result - generator
 	def __findAllPatGen_Unscoped(self, pat, begin, end, excludeClips=True):
 		for mres in pat.finditer(self.__code, begin, end):
-			if not excludeClips or not self.isClipped(mres.start()):
+			if not excludeClips or not self.isClippedInt(mres.start()):
 				yield mres
 	
 
@@ -139,13 +139,13 @@ class SourceFile:
 	def __findAllPatGen_Unscoped_SkipBlocks(self, pat, begin, end, excludeClips=True):
 		while mres := pat.search(self.__code, begin, end):
 			if mres.group("__cppcr_sbo"):
-				if self.isClipped(mres.start()):
+				if self.isClippedInt(mres.start()):
 					begin = mres.end()
 				else:
 					begin = self.__blockEnds[mres.start()]
 			else:
 				begin = mres.end()
-				if not excludeClips or not self.isClipped(mres.start()):
+				if not excludeClips or not self.isClippedInt(mres.start()):
 					yield mres
 
 
@@ -153,7 +153,7 @@ class SourceFile:
 	def __findAllPatGen(self, pat, excludeClips=True):
 		for (begin, end) in self.__scopes:
 			for mres in pat.finditer(self.__code, begin, end):
-				if not excludeClips or not self.isClipped(mres.start()):
+				if not excludeClips or not self.isClippedInt(mres.start()):
 					yield mres
 
 
@@ -162,19 +162,19 @@ class SourceFile:
 		for (begin, end) in self.__scopes:
 			while mres := pat.search(self.__code, begin, end):
 				if mres.group("__cppcr_sbo"):
-					if self.isClipped(mres.start()):
+					if self.isClippedInt(mres.start()):
 						begin = mres.end()
 					else:
 						begin = self.__blockEnds[mres.start()]
 				else:
 					begin = mres.end()
-					if not excludeClips or not self.isClipped(mres.start()):
+					if not excludeClips or not self.isClippedInt(mres.start()):
 						yield mres
 
 
 	def __matchPatUnscoped(self, pat, begin, end=None, excludeClips=True):
 		while mres := pat.match(self.__code, begin, end):
-			if not excludeClips or not self.isClipped(mres.start()):
+			if not excludeClips or not self.isClippedInt(mres.start()):
 				return mres
 			else:
 				begin = mres.end()
@@ -182,7 +182,7 @@ class SourceFile:
 
 	def __findPatUnscoped(self, pat, begin, end=None, excludeClips=True):
 		while mres := pat.search(self.__code, begin, end):
-			if not excludeClips or not self.isClipped(mres.start()):
+			if not excludeClips or not self.isClippedInt(mres.start()):
 				return mres
 			else:
 				begin = mres.end()
@@ -192,13 +192,13 @@ class SourceFile:
 	def __findPatUnscoped_SkipBlocks(self, pat, begin, end=None, excludeClips=True):
 		while mres := pat.search(self.__code, begin, end):
 			if mres.group("__cppcr_sbo"):
-				if self.isClipped(mres.start()):
+				if self.isClippedInt(mres.start()):
 					begin = mres.end()
 				else:
 					begin = self.__blockEnds[mres.start()]
 			else:
 				begin = mres.end()
-				if not excludeClips or not self.isClipped(mres.start()):
+				if not excludeClips or not self.isClippedInt(mres.start()):
 					return mres
 
 
@@ -317,7 +317,7 @@ class SourceFile:
 		shifts = []
 
 		def inRepl(mres):
-			if excludeClips and self.isClipped(mres.start()):
+			if excludeClips and self.isClippedInt(mres.start()):
 				return mres.group(0)
 			else:
 				repStr = repl(mres)
