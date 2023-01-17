@@ -24,13 +24,14 @@ _methDec0Pat = regex.compile(r"(?:(\w+)\s*::\s*)?(~\s*)?(\w+)\s*\(\s*")
 _methDec1Pat = regex.compile(r"\s*(\w+)?(?P<opt>\s*=)?\s*")
 _methDec2Pat = regex.compile(r"\s*,?\s*")
 _methDec3Pat = regex.compile(r"\)(\s*const)?")
-_tpOps0Pat = regex.compile(r"(?!\s)(?:[\*&]|const\b|\s+)*")
+_tpOps0Pat = regex.compile(r"(?!\s)(?:[\*&]|const\b|typename\b|\s+)*")
 _tpOps1Pat = regex.compile(r"(?:[\*&]|const\b|\s+)*(?<!\s)")
 _tpSpaceRepPat = regex.compile(r"(\b\s+\b)|\s+")
 _tpBuiltInPat = regex.compile(r"(?:unsigned\s+)?(?:(?:short|long(?:\s+long)?)(?:\s+int)?|int|char)")
 _tpName0Pat = regex.compile(r"\s*(\w+)")
 _tpName1Pat = regex.compile(r"\s*::\s*(\w+)")
 _tpArrPat = regex.compile(r"\s*\[[^]]*]")
+_tpTailPat = regex.compile(r"(?:\s*typename)?")
 _tempArgs0Pat = regex.compile(r"\s*<\s*")
 _tempArgs1Pat = regex.compile(r"\s*,\s*")
 _tempArgs2Pat = regex.compile(r"\s*>")
@@ -39,6 +40,8 @@ _indentPat = regex.compile(r"(?<=^|\r\n)([ \t]*+)")
 _expr0Pat = regex.compile(r"\s*+[^\(\)\[\],]+(?P<popen>\(|\[)?(?<!\s)")
 _expr1Pat = regex.compile(r"\s*,?\s*")
 _expr2Pat = regex.compile(r"[\)\]]")
+_classStructHead0Re = r"\b{keyword}\s+{name}\b\s*"
+_classStructHead1Re = r"\s*(?::(?!:)(?:[^;\{]|"f"{_commentRe}"r")*+)?(?=\{)"
 
 
 class Syntax:
@@ -59,12 +62,16 @@ class Syntax:
         return _lineStartPat.sub(lambda mres: mres.group(0) + ind, code)
 
 
-    def makeClassPrefixRe(cname):
-        return r"class\s+{}\b(?:[^;\{{]|{})*{{".format(cname, _commentRe)
+    #def makeClassPrefixRe(cname):
+    #    return _classStructPrefixRe.format(keyword="class", name=cname)
+
+
+    #def makeStructPrefixRe(sname):
+    #    return _classStructPrefixRe.format(keyword="struct", name=sname)
     
 
     def makeNamespacePrefixRe(nsname):
-        return r"namespace\s+{}\b(?:[^;\{{]|{})*{{".format(nsname, _commentRe)
+        return r"namespace\s+{}\b(?:\s|{})*{{".format(nsname, _commentRe)
 
 
     def makeDirectCallRe(methnames):
@@ -126,49 +133,55 @@ class Syntax:
         return code
 
 
-    def _parseTempArgsProt(s, begin=0):
+    def parseTempArgs(s, begin=0):
         mres = _tempArgs0Pat.match(s, begin)
         if not mres: return None
         if s[mres.end()] == '>': return ("<>", mres.end() + 1)
 
-        (tp, begin) = Syntax.parseTypeProt(s, mres.end())
+        (tp, pos) = Syntax.parseType(s, mres.end())
         args = "<" + tp
-        while mres := _tempArgs1Pat.match(s, begin):
+        while mres := _tempArgs1Pat.match(s, pos):
             args += "`"
-            (tp, begin) = Syntax.parseTypeProt(s, mres.end())
+            (tp, pos) = Syntax.parseType(s, mres.end())
             args += tp
-        return (args + ">", _tempArgs2Pat.match(s, begin).end())
+        mres = _tempArgs2Pat.match(s, pos)
+        assert mres, f'Expected ">" found "{s[pos:pos+10]}"'
+        return (args + ">", mres.end())
 
 
-    def parseTypeProt(s, begin=0):
+    def parseType(s, begin=0):
         mres = _tpOps0Pat.match(s, begin)
         tp = mres.group(0)
-        begin = mres.end()
+        pos = mres.end()
         
-        if mres := _tpBuiltInPat.match(s, begin):
+        if mres := _tpBuiltInPat.match(s, pos):
             tp += mres.group(0)
-            begin = mres.end()
+            pos = mres.end()
 
         else:
-            mres = _tpName0Pat.match(s, begin)
+            mres = _tpName0Pat.match(s, pos)
             if not mres: return None
 
             tp += mres.group(1)
-            begin = mres.end()
-            match Syntax._parseTempArgsProt(s, begin):
-                case (args, begin): tp += args
+            pos = mres.end()
+            match Syntax.parseTempArgs(s, pos):
+                case (args, pos): tp += args
 
-            while mres := _tpName1Pat.match(s, begin):
+            while mres := _tpName1Pat.match(s, pos):
                 tp += "::" + mres.group(1)
-                begin = mres.end()
-                match Syntax._parseTempArgsProt(s, begin):
-                    case (args, begin): tp += args
+                pos = mres.end()
+                match Syntax.parseTempArgs(s, pos):
+                    case (args, pos): tp += args
                     
-        if mres := _tpArrPat.match(s, begin):
+        if mres := _tpArrPat.match(s, pos):
             tp += mres.group(0)
-            begin = mres.end()
+            pos = mres.end()
+
+        mres = _tpTailPat.match(s, pos)
+        tp += mres.group(0)
+        pos = mres.end()
         
-        mres = _tpOps1Pat.match(s, begin)
+        mres = _tpOps1Pat.match(s, pos)
         tp += mres.group(0)
 
         tp = _tpSpaceRepPat.sub(lambda m: "%" if m.group(1) else "", tp)
@@ -219,7 +232,7 @@ class Syntax:
         nargs = []
         if s[mres.end()] != ')':
             def readArg(pos):
-                match Syntax.parseTypeProt(s, pos):
+                match Syntax.parseType(s, pos):
                     case (tp, pos):
                         targs.append(tp)
                         mres2 = _methDec1Pat.match(s, pos)
@@ -242,6 +255,23 @@ class Syntax:
         prot += name + "(" + ", ".join(targs) + ")"
         if const: prot += " const"
         return (prot, nargs, mres.end())
+
+
+    def parseClassStructPrefix(kind, name, s, begin=0):
+        assert kind in ["class", "struct", None]
+
+        if not kind: kind = "class|struct"
+        re = _classStructHead0Re.format(keyword=kind, name=name)
+        mres = regex.match(re, s, pos=begin)
+        if not mres: return None
+        pos = mres.end()
+
+        match Syntax.parseTempArgs(s, pos):
+            case (_, pos): pass
+
+        mres = regex.match(_classStructHead1Re, s, pos=pos)
+        if mres: return (s[begin:mres.end()], mres.end())
+        else:    return None
 
     
     # prot in normal form (see above)

@@ -111,20 +111,23 @@ class SourceRegexMatch(SourceMatch):
 
 class SourceRangeMatch(SourceMatch):
 
-    def __init__(self, src, ranges, *, copySource=True):
+    def __init__(self, src, ranges, *, intRanges=False, copySource=True):
         if isinstance(ranges, tuple):
             ranges = [ranges]
         if isinstance(ranges, list):
             self.__rangesDict = {}
             for i, (begin, end) in enumerate(ranges):
                 assert 0 <= begin and begin <= end
-                self.__rangesDict[i] = (src._intPos(begin), src._intPos(end))
+                self.__rangesDict[i] =  (begin, end) if intRanges else (src._intPos(begin), src._intPos(end))
         elif isinstance(ranges, dict):
             assert 0 in ranges
-            self.__rangesDict = {}
-            for group, (begin, end) in ranges:
-                assert 0 <= begin and begin <= end
-                self.__rangesDict[group] = (src._intPos(begin), src._intPos(end))
+            if intRanges:
+                self.__rangesDict = ranges.copy()
+            else:
+                self.__rangesDict = {}
+                for group, (begin, end) in ranges:
+                    assert 0 <= begin and begin <= end
+                    self.__rangesDict[group] = (src._intPos(begin), src._intPos(end))
         else:
             raise TypeError
 

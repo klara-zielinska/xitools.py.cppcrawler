@@ -168,6 +168,10 @@ class SourceFileTests(TestCase):
         src.setScopes([(5579, None)])
         self.assertEqual(src.find("struct", skipBlocks=True).start(), 5631)
         
+        src.setScope(None, None)
+        self.assertEqual(src.find(r"\w+\s*\([^\{}]*\)\s*\{|\{", excludeClips=False).start(), 599)
+        self.assertEqual(src.find(r"\w+\s*\([^\{}]*\)\s*\{|\{").start(), 635)
+        
 
     def test_findUnscoped(self):
 
@@ -189,6 +193,10 @@ class SourceFileTests(TestCase):
 
         self.assertEqual(src.findUnscoped(r"(?i)FuN", 2560).start(), 2591)
         self.assertEqual(src.findUnscoped(r"(?i)FuN", 2560).group(), "FUN")
+        
+        self.assertEqual(src.findUnscoped(r"\w+\s*\([^\{}]*\)\s*\{|\{", excludeClips=False).start(), 599)
+        self.assertEqual(src.findUnscoped(r"\w+\s*\([^\{}]*\)\s*\{|\{").start(), 635)
+
 
 
     def test_findAllGen(self):
@@ -221,6 +229,14 @@ class SourceFileTests(TestCase):
         self.assertEqual(list(map(lambda mres: mres.start(), 
                                   list(src.findAllGen("struct")) )), 
                          expectedPos)
+        
+        src.setScope(None, 1360)
+        self.assertEqual([ mres.start() for mres in src.findAllGen(r"\w+\s*\([^\{}]*\)\s*\{|\{", excludeClips=False) ],
+                         [599, 866, 1111])
+        self.assertEqual([ mres.start() for mres in src.findAllGen(r"\w+\s*\([^\{}]*\)\s*\{|\{") ],
+                         [635, 866, 1149])
+        self.assertEqual([ mres.start() for mres in src.findAllGen(r"\w+\s*\([^\{}]*\)\s*\{|\{", skipBlocks=True) ],
+                         [635, 1149])
 
 
     def test_findAllGen_Unscoped(self):
@@ -263,6 +279,15 @@ class SourceFileTests(TestCase):
         self.assertEqual(list(map(lambda mres: mres.start(), 
                                   list(src.findAllGen_Unscoped("struct", 8500)) )), 
                          expectedPos)
+        
+        self.assertEqual([ mres.start() for mres in src.findAllGen_Unscoped(r"\w+\s*\([^\{}]*\)\s*\{|\{", 
+                                                                            excludeClips=False) ][:3],
+                         [599, 866, 1111])
+        self.assertEqual([ mres.start() for mres in src.findAllGen_Unscoped(r"\w+\s*\([^\{}]*\)\s*\{|\{") ][:3],
+                         [635, 866, 1149])
+        self.assertEqual([ mres.start() for mres in src.findAllGen_Unscoped(r"\w+\s*\([^\{}]*\)\s*\{|\{", 
+                                                                            skipBlocks=True) ][:5],
+                         [635, 1149, 1594, 5578, 6273 ])
 
 
     def test_matchUnscoped(self):
@@ -429,8 +454,8 @@ class SourceFileTests(TestCase):
     def test_tryScopeToClassBody(self):
         
         src = SourceFile(dataFilepath("civ", "CvUnitSort.h"))
-
-        src.tryScopeToClassBody("UnitSortBase")
+        
+        self.assertTrue(src.tryScopeToClassBody("UnitSortBase"))
         self.assertEqual(src._intScopes(), [(src._intPos(688), src._intPos(1242))])
 
 
@@ -445,6 +470,28 @@ class SourceFileTests(TestCase):
         src.tryScopeToClassBody("UnitSortL.*")
         self.assertEqual(src._intScopes(), [(src._intPos(3562), src._intPos(4041)), 
                                             (src._intPos(4075), src._intPos(4315))])
+        
+
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        self.assertFalse(src.tryScopeToClassBody("\w+"))
+        
+
+    def test_tryScopeToStructBody(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+
+        src.setScope(None, 8019)
+        self.assertTrue(src.tryScopeToStructBody(r"\w+"))
+        self.assertEqual(src.scopes(), [(6274, 6362), (6519, 6772), (6941, 7321), (7508, 8015)])
+        
+        src.setScope(None, 8019)
+        self.assertTrue(src.tryScopeToStructBody(r"\w+", skipBlocks=False))
+        res = src.scopes()
+        self.assertEqual(res[:2] + res[4:5] + res[9:10], [(1733, 1765), (1857, 1896), (2786, 3009), (6274, 6362)])
+
+        src.setScope(1770, None)
+        self.assertTrue(src.tryScopeToStructBody("\w+_functor"))
+        self.assertEqual(src.scopes(), [(1857, 1896), (2030, 2068)])
 
 
     def test_saveAs(self):
@@ -481,3 +528,49 @@ class SourceFileTests(TestCase):
         src.saveAs(tmpFilepath(self.testSuit, "CvGlobals.cpp"))
         self.assertTrue(filecmp.cmp(dataFilepath("civ2", "CvGlobals.cpp"), 
                                     tmpFilepath(self.testSuit, "CvGlobals.cpp"), False))
+
+
+    def test_insertSPrefixInBlock(self):
+
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        src.insertSPrefixInBlock(1732, "PROFILE();")
+        src.saveAs(tmpFilepath(self.testSuit, "algorithm2_insert_prof1.h"))
+        self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_insert_prof1.h"), 
+                                    tmpFilepath(self.testSuit, "algorithm2_insert_prof1.h"), False))
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        src.insertSPrefixInBlock(6320, "PROFILE();")
+        src.saveAs(tmpFilepath(self.testSuit, "algorithm2_insert_prof2.h"))
+        self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_insert_prof2.h"), 
+                                    tmpFilepath(self.testSuit, "algorithm2_insert_prof2.h"), False))
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        src.insertSPrefixInBlock(8495, "PROFILE();")
+        src.saveAs(tmpFilepath(self.testSuit, "algorithm2_insert_prof3.h"))
+        self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_insert_prof3.h"), 
+                                    tmpFilepath(self.testSuit, "algorithm2_insert_prof3.h"), False))
+
+        src = SourceFile(dataFilepath("singles", "algorithm2_mod1.h"))
+        src.insertSPrefixInBlock(2223, "PROFILE();", skipComments=True)
+        src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof1.h"))
+        self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod1_insert_prof1.h"), 
+                                    tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof1.h"), False))
+
+        src = SourceFile(dataFilepath("singles", "algorithm2_mod1.h"))
+        src.insertSPrefixInBlock(2223, "PROFILE();", skipComments=False)
+        src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof2.h"))
+        self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod1_insert_prof2.h"), 
+                                    tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof2.h"), False))
+
+        src = SourceFile(dataFilepath("singles", "algorithm2_mod2.h"))
+        src.insertSPrefixInBlock(2223, "PROFILE();", skipComments=True)
+        src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof1.h"))
+        self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod2_insert_prof1.h"), 
+                                    tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof1.h"), False))
+
+        src = SourceFile(dataFilepath("singles", "algorithm2_mod2.h"))
+        src.insertSPrefixInBlock(2223, "PROFILE();", skipComments=True)
+        src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof2.h"))
+        self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod2_insert_prof2.h"), 
+                                    tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof2.h"), False))
+        

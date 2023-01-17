@@ -26,24 +26,26 @@ class SyntaxTests(TestCase):
             (s:="<int>", ("<int>", len(s))),
             (s:="<unsigned   int>", ("<unsigned%int>", len(s))),
             (s:="< unsigned   int,    long>", ("<unsigned%int`long>", len(s))),
-            (s:="< unsigned   int,    long, unsinged\tshort>", ("<unsigned%int`long>", len(s))), 
+            (s:="< unsigned   int,    long, unsigned\tshort>", ("<unsigned%int`long`unsigned%short>", len(s))), 
             (s:="< std::vector < int, Aloc > >", ("<std::vector<int`Aloc>>", len(s))),
             (s:="< std::vector < int, Aloc > >; xxx", ("<std::vector<int`Aloc>>", s.index(";"))),
             (s:="< std::vector < int, Aloc > >  ; xxx", ("<std::vector<int`Aloc>>", s.index(";") - 2))
             ]
 
         for input, expRes in inputOutput:
-            self.assertEqual(Syntax._parseTempArgsProt(input), expRes)
+            self.assertEqual(Syntax.parseTempArgs(input), expRes)
 
 
-    def test_parseTempArgsProt(self):
+    def test_parseTypeProt(self):
         inputOutput = [ 
             (s:="int", ("int", len(s))),
             (s:="const int",   ("const%int", len(s))),
             (s:="const unsigned int", ("const%unsigned%int", len(s))),
+            (s:="typename const unsigned int", ("typename%const%unsigned%int", len(s))),
                         
             (s:="const * int", ("const*int", len(s))),
             (s:="const long long&", ("const%long%long&", len(s))),
+            (s:="const long long  typename&", ("const%long%long%typename&", len(s))),
 
             (s:="int[10]", ("int[10]", len(s))),
             (s:="int  [   10 + 20 * (30)  ]", ("int[10+20*(30)]", len(s))),
@@ -65,7 +67,7 @@ class SyntaxTests(TestCase):
             ]
 
         for input, expRes in inputOutput:
-            self.assertEqual(Syntax.parseTypeProt(input), expRes, f"Input: {input}")
+            self.assertEqual(Syntax.parseType(input), expRes, f"Input: {input}")
 
 
     def test_parseExpr(self):

@@ -9,6 +9,17 @@ import errno
 import os
 
 
+_blockStartPat = regex.compile(
+	r"(?:(?P<ts>\s))*"
+	r"(?<=\r\n(?P<ind>[ \t]+))?(?P<ins>)"
+	r"[^\s].*(?:\r\n(?P<ind>[ \t]*))?")
+
+_blockStartSkipComPat = regex.compile(
+	r"(?:(?P<ts>\s)|"f"{Syntax.commentRe})*"
+	r"(?<=\r\n(?P<ind>[ \t]+))?(?P<ins>)"
+	r"[^\s].*(?:\r\n(?P<ind>[ \t]*))?")
+
+
 class SourceFile:
 	__filename     = None
 	__code         = None
@@ -42,6 +53,65 @@ class SourceFile:
 		return self.__code[self._intPos(start):self._intPos(end)]
 
 
+	def filename(self):
+		return self.__filename
+
+
+	def blockEnd(self, begin):
+		return self._orgPos(self.__blockEnds[self._intPos(begin)])
+
+
+	def resetScopes(self):
+		self.__scopes = [(None, None)]
+
+
+	def _intScopes(self):
+		return self.__scopes
+
+
+	def scopes(self):
+		return [ (self._orgPos(begin), self._orgPos(end)) for (begin, end) in self.__scopes ]
+
+
+	def setScope(self, begin, end):
+		self.__scopes = [(self._intPos(begin), self._intPos(end))]
+
+
+	def setScopes(self, scopes):
+		if type(scopes) is tuple:
+			scopes = [scopes]
+		assert type(scopes) is list
+		self.__scopes = list(map(lambda scope: (self._intPos(scope[0]), self._intPos(scope[1])), scopes))
+
+
+	def addScope(self, begin, end):
+		insertRangeSorted(self.__scopes, self._intPos(begin), self._intPos(end))
+
+
+	def isClippedInt(self, pos):
+		for (start, end, _) in self.__clipRanges:
+			if start > pos:
+				return False
+			elif end > pos:
+				return True
+		return False
+
+
+	def getClipRangeInt(self, pos):
+		for range in self.__clipRanges:
+			(start, end, _) = range
+			if start > pos:
+				return None
+			elif end > pos:
+				return range
+		return None
+
+
+	def lineStart(self, pos):
+		ln = self._intLineNo(self._intPos(pos))
+		return self._orgPos(0 if ln == 0 else self.__lineEnds[ln - 1])
+
+
 	def copy(self):
 		cp = SourceFile()
 		cp.__filename   = self.__filename
@@ -54,11 +124,7 @@ class SourceFile:
 		cp.__scopes     = self.__scopes.copy()
 		return cp
 
-
-	def filename(self):
-		return self.__filename
-
-
+	
 	def load(self, filename, encoding="utf-8"):
 		self.__filename = os.path.abspath(filename)
 		with open(self.__filename, "r", encoding=encoding, newline="") as f:
@@ -96,42 +162,20 @@ class SourceFile:
 		self.__code = None
 
 
-	def resetScopes(self):
-		self.__scopes = [(None, None)]
-
-
-	def _intScopes(self):
-		return self.__scopes
-
-
-	def setScope(self, begin, end):
-		self.__scopes = [(self._intPos(begin), self._intPos(end))]
-
-
-	def setScopes(self, scopes):
-		if type(scopes) is tuple:
-			scopes = [scopes]
-		assert type(scopes) is list
-		self.__scopes = list(map(lambda scope: (self._intPos(scope[0]), self._intPos(scope[1])), scopes))
-
-
-	def addScope(self, begin, end):
-		insertRangeSorted(self.__scopes, self._intPos(begin), self._intPos(end))
-
-
-	def isClippedInt(self, pos):
-		for (start, end, _) in self.__clipRanges:
-			if start > pos:
-				return False
-			elif end > pos:
-				return True
-		return False
+	def findFirstBlock(self, pos):
+		if mres := self.__findPatUnscoped(regex.compile("{"), self._intPos(pos)):
+			return (self._orgPos(mres.start()), self._orgPos(self.__blockEnds[mres.start()] + 1))
+		else:
+			return None
 	
 
 	# result - generator
 	def __findAllPatGen_Unscoped(self, pat, begin, end, excludeClips=True):
-		for mres in pat.finditer(self.__code, begin, end):
-			if not excludeClips or not self.isClippedInt(mres.start()):
+		while mres := pat.search(self.__code, begin, end):
+			if excludeClips and (range := self.getClipRangeInt(mres.start())):
+				begin = range[1]
+			else:
+				begin = mres.end()
 				yield mres
 	
 
@@ -144,16 +188,21 @@ class SourceFile:
 				else:
 					begin = self.__blockEnds[mres.start()]
 			else:
-				begin = mres.end()
-				if not excludeClips or not self.isClippedInt(mres.start()):
+				if excludeClips and (range := self.getClipRangeInt(mres.start())):
+					begin = range[1]
+				else:
+					begin = self._blockExtension(begin, mres.end())
 					yield mres
 
 
 	# result - generator
 	def __findAllPatGen(self, pat, excludeClips=True):
 		for (begin, end) in self.__scopes:
-			for mres in pat.finditer(self.__code, begin, end):
-				if not excludeClips or not self.isClippedInt(mres.start()):
+			while mres := pat.search(self.__code, begin, end):
+				if excludeClips and (range := self.getClipRangeInt(mres.start())):
+					begin = range[1]
+				else:
+					begin = mres.end()
 					yield mres
 
 
@@ -167,25 +216,27 @@ class SourceFile:
 					else:
 						begin = self.__blockEnds[mres.start()]
 				else:
-					begin = mres.end()
-					if not excludeClips or not self.isClippedInt(mres.start()):
+					if excludeClips and (range := self.getClipRangeInt(mres.start())):
+						begin = range[1]
+					else:
+						begin = self._blockExtension(begin, mres.end())
 						yield mres
 
 
 	def __matchPatUnscoped(self, pat, begin, end=None, excludeClips=True):
 		while mres := pat.match(self.__code, begin, end):
-			if not excludeClips or not self.isClippedInt(mres.start()):
-				return mres
+			if excludeClips and (range := self.getClipRangeInt(mres.start())):
+				begin = range[1]
 			else:
-				begin = mres.end()
+				return mres
 
 
 	def __findPatUnscoped(self, pat, begin, end=None, excludeClips=True):
 		while mres := pat.search(self.__code, begin, end):
-			if not excludeClips or not self.isClippedInt(mres.start()):
-				return mres
+			if excludeClips and (range := self.getClipRangeInt(mres.start())):
+				begin = range[1]
 			else:
-				begin = mres.end()
+				return mres
 
 				
 	# pat has to be prepared with makeSkipBlocksPat (suffixed with "|(?P<__cppcr_sbo>\{)")
@@ -197,8 +248,9 @@ class SourceFile:
 				else:
 					begin = self.__blockEnds[mres.start()]
 			else:
-				begin = mres.end()
-				if not excludeClips or not self.isClippedInt(mres.start()):
+				if excludeClips and (range := self.getClipRangeInt(mres.start())):
+					begin = range[1]
+				else:
 					return mres
 
 
@@ -336,37 +388,81 @@ class SourceFile:
 		return replaced
 
 
-	# heuristic selection of the body of the given class
-	# selection = scoping to
-	# return: the position of the class definition or -1 in none
-	def tryScopeToClassBody(self, cname, scopes=None):
-		return self.tryScopeToBlockByPrefix(Syntax.makeClassPrefixRe(f"(?:{cname})"), scopes)
-		
-
-	# scope file to all bodis of the namespace nsname that start in the given scopes or in
-	# the currently active scopes if given None
-	def tryScopeToNamespaceBody(self, nsname, scopes=None):
-		return self.tryScopeToBlockByPrefix(Syntax.makeNamespacePrefixRe(f"(?:{nsname})"), scopes)
+	# Tries to scope to the body of the given class or classes if name is a regex
+	def tryScopeToClassBody(self, name, scopes=None, *, skipBlocks=True):
+		return self.tryScopeToClassStructBody("class", name, scopes, skipBlocks=skipBlocks)
 
 
-	def lineStart(self, pos):
-		ln = self._intLineNo(self._intPos(pos))
-		return self._orgPos(0 if ln == 0 else self.__lineEnds[ln - 1])
+	# Tries to scope to the body of the given struct or structs if name is a regex
+	def tryScopeToStructBody(self, name, scopes=None, *, skipBlocks=True):
+		return self.tryScopeToClassStructBody("struct", name, scopes, skipBlocks=skipBlocks)
 
-
-	def findFirstBlock(self, pos):
-		if mres := self.__findPatUnscoped(regex.compile("{"), self._intPos(pos)):
-			return (self._orgPos(mres.start()), self._orgPos(self.__blockEnds[mres.start()] + 1))
-		else:
-			return None
 	
+	# Tries to scope to the body of the given class or struct or many if name is a regex
+	def tryScopeToClassStructBody(self, kind, name, scopes=None, *, skipBlocks=True):
+		assert kind in ["class", "struct", None]
+		if not kind: kind = "class|struct"
 
-	def tryScopeToBlockByPrefix(self, prefixRe, scopes=None):
 		if scopes:
 			oldScopes = self.__scopes
 			self.setScopes(scopes)
 
-		prefixPat = SourceFile.makeSkipBlocksPat(prefixRe)
+		prefixRe = f"\\b{kind}\\s+{name}\\b"
+
+		if skipBlocks:
+			prefixPat = SourceFile.makeSkipBlocksPat(prefixRe)
+			find = self.__findPatUnscoped_SkipBlocks
+		else:
+			prefixPat = regex.compile(prefixRe)
+			find = self.__findPatUnscoped
+
+		foundScopes = []
+
+		pos = 0
+		for scope in self.__scopes:
+			begin = scope[0]
+			end   = scope[1]
+			if tagged := len(scope) == 3:
+				tag = scopes[2]
+			if begin is not None and pos < begin:
+				pos = begin
+			while (end is None or pos < end) and (imres := find(prefixPat, pos, end)):
+				match Syntax.parseClassStructPrefix(kind, name, self.__code, imres.start()):
+					case (_, pos): pass
+					case None:
+						pos = imres.end()
+						continue
+				blockEnd = self.__blockEnds[pos]
+				foundScope = tuple([pos + 1, blockEnd] + ([tag] if tagged else []))
+				foundScopes.append(foundScope)
+				pos = blockEnd + 1
+
+		if foundScopes:
+			self.__scopes = foundScopes
+			return True
+		else:
+			if scopes: self.__scopes = oldScopes
+			return False
+		
+
+	# Tries to scope to all bodis of the namespace nsname or namespaces if given a regex
+	def tryScopeToNamespaceBody(self, nsname, scopes=None, *, skipBlocks=True):
+		return self.tryScopeToBlocksByPrefix(Syntax.makeNamespacePrefixRe(f"(?:{nsname})"), scopes, 
+									         skipBlocks=skipBlocks)
+	
+
+	def tryScopeToBlocksByPrefix(self, prefixRe, scopes=None, *, skipBlocks=True):
+		if scopes:
+			oldScopes = self.__scopes
+			self.setScopes(scopes)
+
+		if skipBlocks:
+			prefixPat = SourceFile.makeSkipBlocksPat(prefixRe)
+			find = self.__findPatUnscoped_SkipBlocks
+		else:
+			prefixPat = regex.compile(prefixRe)
+			find = self.__findPatUnscoped
+
 		foundScopes = []
 
 		pos = 0
@@ -377,9 +473,10 @@ class SourceFile:
 				tag = scopes[2]
 			if begin is not None and pos < begin: 
 				pos = begin
-			while (end is None or pos < end) and (mres := self.__findPatUnscoped_SkipBlocks(prefixPat, pos, end)):
+			while (end is None or pos < end) and (mres := find(prefixPat, pos, end)):
 				pos = mres.end()
-				assert pos-1 in self.__blockEnds, f"No block end: {self._orgPos(pos-1)}{self._intOrgLocation(pos-1)}, {self}"
+				assert pos-1 in self.__blockEnds, (f"No block end: {self._orgPos(pos-1)}{self._intOrgLocation(pos-1)},"
+												   " {self}")
 				foundScope = tuple([pos, self.__blockEnds[pos - 1]] + ([tag] if tagged else []))
 				foundScopes.append(foundScope)
 				pos = self.__blockEnds[pos - 1] + 1
@@ -390,7 +487,60 @@ class SourceFile:
 		else:
 			if scopes: self.__scopes = oldScopes
 			return False
-	
+
+
+	def insertSPrefixInBlock(self, blockBegin, prefix, *, skipComments=False):
+		assert "\r\n" not in prefix, "Multiline prefix"
+		blockBegin = self._intPos(blockBegin)
+		assert blockBegin in self.__blockEnds, "No block in the given position"
+		blockEnd   = self.__blockEnds[blockBegin]
+		imres = self.__matchPatUnscoped(_blockStartSkipComPat if skipComments else _blockStartPat, 
+								        blockBegin + 1, blockEnd + 1)
+		if imres.group("ind"):
+			prefix += "\r\n" + imres.captures("ind")[0]
+		elif imres.start("ins") != blockEnd or imres.group("ts"):
+			prefix += " "
+		replMatch = sm.SourceRangeMatch(self, (imres.start("ins"), imres.start("ins")), intRanges=True, 
+										copySource=False)
+		self.replaceMatch(replMatch, prefix)
+
+		#beginBlockLn = self._intLineNo(blockBegin)
+		#endBlockLn   = self._intLineNo(blockEnd)
+
+		#if beginBlockLn == endBlockLn and prefix.count("\r\n") == 0:
+		#	imres = self.__matchPatUnscoped(_spacePat, blockBegin + 1)
+		#	replMatch = sm.SourceRangeMatch(self, (imres.end(), imres.end()), intRanges=True)
+		#	self.replaceMatch(replMatch, prefix + " ")
+
+		#else:
+		#	imres = self.__matchPatUnscoped(_block0Pat, blockBegin)
+		#	replMatch = sm.SourceRangeMatch(self, (imres.start(2), blockEnd), intRanges=True)
+		#	indent = imres.group(1)
+		#	newblock = Syntax.expandBlock(self.__code[blockBegin:blockEnd+1])
+		#	newblock = Syntax.indent(imres.group(1),
+		#								"{\r\n" 
+		#								f"{self.indent}{prefix}\r\n"
+		#								f"{newblock[3:]}")
+		#	self.replaceMatch(replMatch, imres.group(1) + newblock)
+
+
+	def _blockExtension(self, ibegin, iend):
+		if iend   is None: return len(self.__code)
+		if ibegin is None: ibegin = 0
+		ext = iend
+		i = ibegin
+		while i < iend:
+			if self.__code[i] == '{':
+				if range := self.getClipRangeInt(i):
+					i = range[1]
+				else:
+					blockEnd = self.__blockEnds[i]
+					ext = max(ext, blockEnd)
+					i = blockEnd
+			else:
+				i += 1
+		return ext
+
 
 	def __makeClipRangesAndLineEnds(self):
 		self.__clipRanges = []
@@ -531,3 +681,7 @@ class SourceFile:
 
 	def makeSkipBlocksPat(re):
 		return regex.compile(re + r"|(?P<__cppcr_sbo>\{)")
+
+
+	def checkSkipBlocksPat(pat):
+		return pat.pattern.endswith(r"|(?P<__cppcr_sbo>\{)")
