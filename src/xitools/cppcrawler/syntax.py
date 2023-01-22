@@ -64,7 +64,7 @@ _expr0Pat = regex.compile(r"\s*+[^\(\)\[\],]+(?P<popen>\(|\[)?(?<!\s)")
 _expr1Pat = regex.compile(r"\s*,?\s*")
 _expr2Pat = regex.compile(r"[\)\]]")
 _classStructHead0Re = r"\b({keyword})\s+({name})\b\s*"
-_classStructHead1Re = r"\s*(?::(?!:)(?:[^;\{]|"f"{_commentRe}"r")*+)?(?=\{)"
+_classStructHead1Pat = regex.compile(r"\s*(?::(?!:)(?:[^;\{]|"f"{_commentRe}"r")*+)?(?=\{)")
 
 
 class Syntax:
@@ -341,9 +341,10 @@ class Syntax:
         match Syntax.parseTempArgs(s, pos):
             case (_, pos): pass
 
-        mres2 = regex.match(_classStructHead1Re, s, pos=pos)
-        if mres2: return (mres.group(1), mres.group(2), mres2.end())
-        else:    return None
+        if mres2 := _classStructHead1Pat.match(s, pos): 
+            return (mres.group(1), mres.group(2), mres2.end())
+        else:
+            return None
 
     
     # prot in normal form (see above)
