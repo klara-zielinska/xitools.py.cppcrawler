@@ -25,6 +25,11 @@ class CppCrawler:
     def sourceDir(self):
         return self.__sourceDir
 
+
+    def sourceRelPath(self, file):
+        if isinstance(file, SourceFile): file = file.filename()
+        return os.path.relpath(file, self.__sourceDir)
+
         
     def listSourceFiles(self, filepath):
         return glob(filepath, root_dir=self.__sourceDir, recursive=True)
