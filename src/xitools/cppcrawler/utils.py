@@ -2,7 +2,7 @@ from bisect import bisect_right
 
 
 def flatten(l):
-    return [item for sublist in l for item in sublist]
+	return [item for sublist in l for item in sublist]
 
 
 def _maxCommonPrefix(s1, s2):
