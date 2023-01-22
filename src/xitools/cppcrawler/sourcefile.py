@@ -11,13 +11,13 @@ import os
 
 _blockStartPat = regex.compile(
 	r"(?:(?P<ts>\s))*"
-	r"(?<=\r\n(?P<ind>[ \t]+))?(?P<ins>)"
-	r"[^\s].*(?:\r\n(?P<ind>[ \t]*))?")
+	r"(?<=\r\n(?P<ind>[ \t]+))?(?P<ins>)(?=.*(?P<preproc>#(?:define|undef|if|ifdef|ifndef|else|endif|pragma)\b))?[^\s].*"
+	r"(?:\r\n(?P<ind>[ \t]*))?")
 
 _blockStartSkipComPat = regex.compile(
 	r"(?:(?P<ts>\s)|"f"{Syntax.commentRe})*"
-	r"(?<=\r\n(?P<ind>[ \t]+))?(?P<ins>)"
-	r"[^\s].*(?:\r\n(?P<ind>[ \t]*))?")
+	r"(?<=\r\n(?P<ind>[ \t]+))?(?P<ins>)(?=.*(?P<preproc>#(?:define|undef|if|ifdef|ifndef|else|endif|pragma)\b))?[^\s].*"
+	r"(?:\r\n(?P<ind>[ \t]*))?")
 
 
 class SourceFile:
@@ -57,12 +57,13 @@ class SourceFile:
 		return self.__filename
 
 
-	def blockEnd(self, begin):
-		return self._orgPos(self.__blockEnds[self._intPos(begin)])
+	def blockEnd(self, begin, *, int=False):
+		ibegin = begin if int else self._intPos(begin) 
+		return self._orgPos(self.__blockEnds[ibegin])
 
 
 	def resetScopes(self):
-		self.__scopes = [(None, None)]
+		self.__scopes = [(None, None, None)]
 
 
 	def _intScopes(self):
@@ -70,22 +71,23 @@ class SourceFile:
 
 
 	def scopes(self):
-		return [ (self._orgPos(begin), self._orgPos(end)) for (begin, end) in self.__scopes ]
+		return [ (self._orgPos(begin), self._orgPos(end), tag) for (begin, end, tag) in self.__scopes ]
 
 
-	def setScope(self, begin, end):
-		self.__scopes = [(self._intPos(begin), self._intPos(end))]
+	def setScope(self, begin, end, tag=None):
+		self.__scopes = [(self._intPos(begin), self._intPos(end), tag)]
 
 
 	def setScopes(self, scopes):
 		if type(scopes) is tuple:
 			scopes = [scopes]
 		assert type(scopes) is list
-		self.__scopes = list(map(lambda scope: (self._intPos(scope[0]), self._intPos(scope[1])), scopes))
+		self.__scopes = [ (self._intPos(scope[0]), self._intPos(scope[1]), scope[2] if len(scope) == 3 else None)
+						  for scope in scopes ]
 
 
-	def addScope(self, begin, end):
-		insertRangeSorted(self.__scopes, self._intPos(begin), self._intPos(end))
+	#def addScope(self, begin, end, tag=None):
+	#	insertRangeSorted(self.__scopes, self._intPos(begin), self._intPos(end))
 
 
 	def isClippedInt(self, pos):
@@ -196,19 +198,29 @@ class SourceFile:
 
 
 	# result - generator
-	def __findAllPatGen(self, pat, excludeClips=True):
-		for (begin, end) in self.__scopes:
+	def __findAllPatGen(self, pat, excludeClips=True, scopeTag=False):
+		if scopeTag: 
+			def wrapRes(mres, stag): return (mres, stag)
+		else:       
+			def wrapRes(mres, stag): return mres
+
+		for (begin, end, stag) in self.__scopes:
 			while mres := pat.search(self.__code, begin, end):
 				if excludeClips and (range := self.getClipRangeInt(mres.start())):
 					begin = range[1]
 				else:
 					begin = mres.end()
-					yield mres
+					yield wrapRes(mres, stag)
 
 
 	# result - generator
-	def __findAllPatGen_SkipBlocks(self, pat, excludeClips=True):
-		for (begin, end) in self.__scopes:
+	def __findAllPatGen_SkipBlocks(self, pat, excludeClips=True, scopeTag=False):
+		if scopeTag: 
+			def wrapRes(mres, stag): return (mres, stag)
+		else:       
+			def wrapRes(mres, stag): return mres
+
+		for (begin, end, stag) in self.__scopes:
 			while mres := pat.search(self.__code, begin, end):
 				if mres.group("__cppcr_sbo"):
 					if self.isClippedInt(mres.start()):
@@ -220,15 +232,21 @@ class SourceFile:
 						begin = range[1]
 					else:
 						begin = self._blockExtension(begin, mres.end())
-						yield mres
+						yield wrapRes(mres, stag)
 
 
 	def __matchPatUnscoped(self, pat, begin, end=None, excludeClips=True):
-		while mres := pat.match(self.__code, begin, end):
-			if excludeClips and (range := self.getClipRangeInt(mres.start())):
-				begin = range[1]
-			else:
-				return mres
+		if excludeClips and self.getClipRangeInt(begin):
+			return None
+		else:
+			return pat.match(self.__code, begin, end)
+
+
+	def __fullmatchPatUnscoped(self, pat, begin, end=None, excludeClips=True):
+		if excludeClips and self.getClipRangeInt(begin):
+			return None
+		else:
+			return pat.fullmatch(self.__code, begin, end)
 
 
 	def __findPatUnscoped(self, pat, begin, end=None, excludeClips=True):
@@ -254,20 +272,29 @@ class SourceFile:
 					return mres
 
 
-	def __findPat(self, pat, excludeClips=True):
-		return next(self.__findAllPatGen(pat, excludeClips), None)
+	def __findPat(self, pat, excludeClips=True, scopeTag=False):
+		return next(self.__findAllPatGen(pat, excludeClips, scopeTag), None)
 	
 
-	def __findPat_SkipBlocks(self, pat, excludeClips=True):
-		return next(self.__findAllPatGen_SkipBlocks(pat, excludeClips), None)
+	def __findPat_SkipBlocks(self, pat, excludeClips=True, scopeTag=False):
+		return next(self.__findAllPatGen_SkipBlocks(pat, excludeClips, scopeTag), None)
 	
 
-	def matchUnscoped(self, pat, begin=None, end=None, *, excludeClips=True):
+	def matchUnscoped(self, pat, begin=0, end=None, *, excludeClips=True):
 		if type(pat) is not regex.Pattern:
 			pat = regex.compile(pat)
 		if begin is not None: begin = self._intPos(begin)
 		if end   is not None: end   = self._intPos(end)
 		mres = self.__matchPatUnscoped(pat, begin, end, excludeClips)
+		return sm.SourceRegexMatch(self, mres) if mres else None
+	
+
+	def fullmatchUnscoped(self, pat, begin=0, end=None, *, excludeClips=True):
+		if type(pat) is not regex.Pattern:
+			pat = regex.compile(pat)
+		if begin is not None: begin = self._intPos(begin)
+		if end   is not None: end   = self._intPos(end)
+		mres = self.__fullmatchPatUnscoped(pat, begin, end, excludeClips)
 		return sm.SourceRegexMatch(self, mres) if mres else None
 
 
@@ -284,31 +311,42 @@ class SourceFile:
 		return sm.SourceRegexMatch(self, mres) if mres else None
 		
 
-	def find(self, pat, *, skipBlocks=False, excludeClips=True):
+	def find(self, pat, *, skipBlocks=False, scopeTag=False, excludeClips=True):
 		if type(pat) is not regex.Pattern:
 			pat = SourceFile.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
 		else:
 			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
 
-		if skipBlocks: mres = self.__findPat_SkipBlocks(pat, excludeClips)
-		else:          mres = self.__findPat(pat, excludeClips)
-		if mres: return sm.SourceRegexMatch(self, mres)
-		else:    return None
+		if skipBlocks: timres = self.__findPat_SkipBlocks(pat, excludeClips, scopeTag)
+		else:          timres = self.__findPat(pat, excludeClips, scopeTag)
+		if not timres: return None
+		elif scopeTag:
+			mres = sm.SourceRegexMatch(self, timres[0])
+			return (mres, timres[1])
+		else:       
+			return sm.SourceRegexMatch(self, timres)
 			
 		
 	# if skipBlocks, pat has to be prepared with makeSkipBlocksPat (suffixed with "|(?P<__cppcr_sbo>\{)")
 	# result - generator
-	def findAllGen(self, pat, *, skipBlocks=False, excludeClips=True):
+	def findAllGen(self, pat, *, skipBlocks=False, scopeTag=False, excludeClips=True):
 		if type(pat) is not regex.Pattern:
 			pat =SourceFile.makeSkipBlocksPat(pat) if skipBlocks else  regex.compile(pat)
 		else:
 			assert not skipBlocks or SourceFile.checkSkipBlocksPat(pat)
 		srcMatchCopy = self.copy()
-
-		if skipBlocks: gen = self.__findAllPatGen_SkipBlocks(pat, excludeClips)
-		else:          gen = self.__findAllPatGen(pat, excludeClips)
-		while mres := next(gen, None):
-			yield sm.SourceRegexMatch(srcMatchCopy, mres, copySource=False)
+		if scopeTag:
+			def wrapRes(timres):
+				mres = sm.SourceRegexMatch(srcMatchCopy, timres[0], copySource=False)
+				return (mres, timres[1])
+		else:       
+			def wrapRes(imres):
+				return sm.SourceRegexMatch(srcMatchCopy, imres, copySource=False)
+		
+		if skipBlocks: gen = self.__findAllPatGen_SkipBlocks(pat, excludeClips, scopeTag)
+		else:          gen = self.__findAllPatGen(pat, excludeClips, scopeTag)
+		while tmres := next(gen, None):
+			yield wrapRes(tmres)
 		
 			
 	# if skipBlocks, pat has to be prepared with makeSkipBlockPat (suffixed with "|(?P<__cppcr_sbo>\{)")
@@ -335,7 +373,7 @@ class SourceFile:
 		if not matches:
 			return
 		if not sorted:
-			matches.sort(key=lambda m: (m.start(), m.end()))
+			matches.sort()
 		if type(repl) is str:
 			_repl = repl
 			repl = lambda _: _repl
@@ -360,6 +398,10 @@ class SourceFile:
 		self.recalcCode()
 
 
+	def replaceRange(self, begin, end, repl):
+		self.replaceMatch(sm.SourceRangeMatch(self, (begin, end)), repl)
+
+
 	def replace(self, pat, repl, count=0, *, excludeClips=True):
 		if type(pat) is not regex.Pattern:
 			pat = regex.compile(pat)
@@ -378,7 +420,7 @@ class SourceFile:
 				return repStr
 
 		replaced = 0 
-		for (begin, end) in self.__scopes:
+		for (begin, end, _) in self.__scopes:
 			actCount = 0 if count == 0 else count - replaced
 			(self.__code, foundCount) = pat.subn(inRepl, self.__code, actCount, pos=begin, endpos=end)
 			replaced += foundCount
@@ -386,6 +428,10 @@ class SourceFile:
 		self.recalcCode()
 
 		return replaced
+
+
+	def insert(self, pos, repl):
+		self.replaceRange(pos, pos, repl)
 
 
 	# Tries to scope to the body of the given class or classes if name is a regex
@@ -422,19 +468,18 @@ class SourceFile:
 		for scope in self.__scopes:
 			begin = scope[0]
 			end   = scope[1]
-			if tagged := len(scope) == 3:
-				tag = scopes[2]
+			#if tagged := len(scope) == 3:
+			#	tag = scopes[2]
 			if begin is not None and pos < begin:
 				pos = begin
 			while (end is None or pos < end) and (imres := find(prefixPat, pos, end)):
 				match Syntax.parseClassStructPrefix(kind, name, self.__code, imres.start()):
-					case (_, pos): pass
+					case (foundkind, foundname, pos): pass
 					case None:
 						pos = imres.end()
 						continue
 				blockEnd = self.__blockEnds[pos]
-				foundScope = tuple([pos + 1, blockEnd] + ([tag] if tagged else []))
-				foundScopes.append(foundScope)
+				foundScopes.append((pos + 1, blockEnd, (foundkind, foundname)))
 				pos = blockEnd + 1
 
 		if foundScopes:
@@ -448,10 +493,10 @@ class SourceFile:
 	# Tries to scope to all bodis of the namespace nsname or namespaces if given a regex
 	def tryScopeToNamespaceBody(self, nsname, scopes=None, *, skipBlocks=True):
 		return self.tryScopeToBlocksByPrefix(Syntax.makeNamespacePrefixRe(f"(?:{nsname})"), scopes, 
-									         skipBlocks=skipBlocks)
+									         tagFunc=lambda mres, _: mres.group("name"), skipBlocks=skipBlocks)
 	
 
-	def tryScopeToBlocksByPrefix(self, prefixRe, scopes=None, *, skipBlocks=True):
+	def tryScopeToBlocksByPrefix(self, prefixRe, scopes=None, *, tagFunc=lambda _, __: None, skipBlocks=True):
 		if scopes:
 			oldScopes = self.__scopes
 			self.setScopes(scopes)
@@ -469,17 +514,15 @@ class SourceFile:
 		for scope in self.__scopes:
 			begin = scope[0]
 			end   = scope[1]
-			if tagged := len(scope) == 3:
-				tag = scopes[2]
+			#if tagged := len(scope) == 3:
+			#	tag = scopes[2]
 			if begin is not None and pos < begin: 
 				pos = begin
 			while (end is None or pos < end) and (mres := find(prefixPat, pos, end)):
 				pos = mres.end()
-				assert pos-1 in self.__blockEnds, (f"No block end: {self._orgPos(pos-1)}{self._intOrgLocation(pos-1)},"
-												   " {self}")
-				foundScope = tuple([pos, self.__blockEnds[pos - 1]] + ([tag] if tagged else []))
-				foundScopes.append(foundScope)
-				pos = self.__blockEnds[pos - 1] + 1
+				blockEnd = self.__blockEnds[pos - 1]
+				foundScopes.append( (pos, blockEnd, tagFunc(mres, scope)) )
+				pos = blockEnd + 1
 
 		if foundScopes:
 			self.__scopes = foundScopes
@@ -489,20 +532,27 @@ class SourceFile:
 			return False
 
 
-	def insertSPrefixInBlock(self, blockBegin, prefix, *, skipComments=False):
-		assert "\r\n" not in prefix, "Multiline prefix"
+	def insertSPrefixInBlockMatch(self, blockBegin, *, skipComments=False):
 		blockBegin = self._intPos(blockBegin)
 		assert blockBegin in self.__blockEnds, "No block in the given position"
 		blockEnd   = self.__blockEnds[blockBegin]
 		imres = self.__matchPatUnscoped(_blockStartSkipComPat if skipComments else _blockStartPat, 
 								        blockBegin + 1, blockEnd + 1)
 		if imres.group("ind"):
-			prefix += "\r\n" + imres.captures("ind")[0]
+			suffix = "\r\n" + imres.captures("ind")[0]
+		elif imres.group("preproc"):
+			suffix = "\r\n" + self.indent
 		elif imres.start("ins") != blockEnd or imres.group("ts"):
-			prefix += " "
-		replMatch = sm.SourceRangeMatch(self, (imres.start("ins"), imres.start("ins")), intRanges=True, 
-										copySource=False)
-		self.replaceMatch(replMatch, prefix)
+			suffix = " "
+		else:
+			suffix = ""
+		return (sm.SourceRangeMatch(self, (imres.start("ins"), imres.start("ins")), intRanges=True), suffix)
+
+
+	def insertSPrefixInBlock(self, blockBegin, prefix, *, skipComments=False):
+		assert "\r\n" not in prefix, "Multiline prefix"
+		(mres, prefixEnd) = self.insertSPrefixInBlockMatch(blockBegin, skipComments=skipComments)
+		self.replaceMatch(mres, prefix + prefixEnd)
 
 		#beginBlockLn = self._intLineNo(blockBegin)
 		#endBlockLn   = self._intLineNo(blockEnd)
