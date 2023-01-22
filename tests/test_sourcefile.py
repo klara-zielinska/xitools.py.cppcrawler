@@ -105,6 +105,12 @@ class SourceFileTests(TestCase):
         self.assertEqual(src._SourceFile__lineEnds.tolist(), expectedLineEnds, "Bad line end")
         
         self.assertEqual(src._SourceFile__blockEnds, expectedBlockEnds, f"Bad block")
+        
+        
+        src = SourceFile(dataFilepath("civ2", "FAssert.h"))
+        src.saveAs(tmpFilepath(self.testSuit, "FAssert.h"))
+        self.assertTrue(filecmp.cmp(dataFilepath("civ2", "FAssert.h"), 
+                                    tmpFilepath(self.testSuit, "FAssert.h"), False))
 
 
     def test__orgPos(self):
@@ -441,14 +447,15 @@ class SourceFileTests(TestCase):
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
 
         src.tryScopeToNamespaceBody("detail")
-        self.assertEqual(src._intScopes(), [(src._intPos(1595), src._intPos(4979))])
+        self.assertEqual(src._intScopes(), [(src._intPos(1595), src._intPos(4979), "detail")])
 
 
         src.resetScopes()
 
         src.tryScopeToNamespaceBody("map_fun_details|algo")
         self.assertEqual(src._intScopes(), 
-                         [(src._intPos(5579), src._intPos(6129)), (src._intPos(10032), src._intPos(12350))])
+                         [(src._intPos(5579), src._intPos(6129), "map_fun_details"), 
+                          (src._intPos(10032), src._intPos(12350), "algo")])
         
         
     def test_tryScopeToClassBody(self):
@@ -456,20 +463,20 @@ class SourceFileTests(TestCase):
         src = SourceFile(dataFilepath("civ", "CvUnitSort.h"))
         
         self.assertTrue(src.tryScopeToClassBody("UnitSortBase"))
-        self.assertEqual(src._intScopes(), [(src._intPos(688), src._intPos(1242))])
+        self.assertEqual(src._intScopes(), [(src._intPos(688), src._intPos(1242), ('class', 'UnitSortBase'))])
 
 
         src.resetScopes()
 
         src.tryScopeToClassBody("UnitSortMove")
-        self.assertEqual(src._intScopes(), [(src._intPos(1513), src._intPos(1678))])
+        self.assertEqual(src._intScopes(), [(src._intPos(1513), src._intPos(1678), ('class', 'UnitSortMove'))])
 
 
         src.resetScopes()
 
         src.tryScopeToClassBody("UnitSortL.*")
-        self.assertEqual(src._intScopes(), [(src._intPos(3562), src._intPos(4041)), 
-                                            (src._intPos(4075), src._intPos(4315))])
+        self.assertEqual(src._intScopes(), [(src._intPos(3562), src._intPos(4041), ('class', 'UnitSortList')), 
+                                            (src._intPos(4075), src._intPos(4315), ('class', 'UnitSortListWrapper'))])
         
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
@@ -482,16 +489,20 @@ class SourceFileTests(TestCase):
 
         src.setScope(None, 8019)
         self.assertTrue(src.tryScopeToStructBody(r"\w+"))
-        self.assertEqual(src.scopes(), [(6274, 6362), (6519, 6772), (6941, 7321), (7508, 8015)])
+        self.assertEqual(src.scopes(), [(6274, 6362, ('struct', 'mem_fn_')), (6519, 6772, ('struct', 'mem_fn_')), 
+                                        (6941, 7321, ('struct', 'mem_fn_')), (7508, 8015, ('struct', 'mem_fn_'))])
         
         src.setScope(None, 8019)
         self.assertTrue(src.tryScopeToStructBody(r"\w+", skipBlocks=False))
         res = src.scopes()
-        self.assertEqual(res[:2] + res[4:5] + res[9:10], [(1733, 1765), (1857, 1896), (2786, 3009), (6274, 6362)])
+        self.assertEqual(res[:2] + res[4:5] + res[9:10], 
+                         [(1733, 1765, ('struct', 'algo_functor')), (1857, 1896, ('struct', 'is_algo_functor')), 
+                          (2786, 3009, ('struct', 'name')), (6274, 6362, ('struct', 'mem_fn_'))])
 
         src.setScope(1770, None)
         self.assertTrue(src.tryScopeToStructBody("\w+_functor"))
-        self.assertEqual(src.scopes(), [(1857, 1896), (2030, 2068)])
+        self.assertEqual(src.scopes(), [(1857, 1896, ('struct', 'is_algo_functor')), 
+                                        (2030, 2068, ('struct', 'is_algo_functor'))])
 
 
     def test_saveAs(self):

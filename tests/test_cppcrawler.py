@@ -39,7 +39,7 @@ class CppCrawlerTests(TestCase):
     def test_findMethDeclarations(self):
         
         crawler = CppCrawler(dataFilepath("civ"))
-
+        
         prots = ["UnitSortMove::getUnitValue(const%CvPlayer*, const%CvCity*, UnitTypes) const"]
         res = { cname: (src.filename(), mres.start()) 
                 for cname, [(_, (src, mres))] 

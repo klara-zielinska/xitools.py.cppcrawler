@@ -85,7 +85,7 @@ class SyntaxTests(TestCase):
             self.assertEqual(Syntax.parseExpr(input), expRes, f"Input: {input}")
 
 
-    def test_parseMethDeclaration(self):
+    def test_parseMethPrototype(self):
         inputOutput = [ 
             (s:="foo()", ("foo()", [], len(s))),
             (s:="foo(unsigned    char  )", ("foo(unsigned%char)", [None], len(s))),
@@ -112,4 +112,4 @@ class SyntaxTests(TestCase):
             ]
 
         for input, expRes in inputOutput:
-            self.assertEqual(Syntax.parseMethDeclaration(input), expRes, f"Input: {input}")
+            self.assertEqual(Syntax.parseMethPrototype(input), expRes, f"Input: {input}")
