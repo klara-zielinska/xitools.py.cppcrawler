@@ -181,7 +181,7 @@ class Syntax:
     # * after the parenteses ``' const'`` is allowed.
     #
     # @param prot  Valid method/function prototype in the normal form (see Syntax.parseMethPrototype).
-    # @return      Regular exression matching the method/function prototype in C++ code, i.e., 
+    # @return      Regular exression matching `prot` in C++ code. Specifically it is `prot` with:
     # * removed `` ` ``,
     # * escaped `regex` symbols,
     # * white space patterns added around symbolic tokens,
@@ -246,12 +246,14 @@ class Syntax:
         (tp, pos) = Syntax.parseType(code, mres.end())
         args = "<" + tp
         while mres := _tempArgs1Pat.match(code, pos):
-            args += "`"
+            args += ",`"
             (tp, pos) = Syntax.parseType(code, mres.end())
             args += tp
         mres = _tempArgs2Pat.match(code, pos)
         assert mres, f'Expected ">" found "{code[pos:pos+10]}"'
-        return (args + ">", mres.end())
+        if args.endswith(">"): args += "`>"
+        else:                  args += ">"
+        return (args, mres.end())
 
 
         # normal form of the type required:
@@ -301,7 +303,7 @@ class Syntax:
             #(targs, nargs, mods, pos) = Syntax.parseMethDecTail(s, mres.end())
             #tp += "{" + "`".join(targs) + "}" + "%".join(mods)
 
-        tp = _tpSpaceRepPat.sub(lambda m: "%" if m.group(1) else "", tp)
+        tp = _tpSpaceRepPat.sub(lambda m: "`" if m.group(1) else "", tp)
         return (tp, pos)
 
 
@@ -350,7 +352,7 @@ class Syntax:
                     mres2 = _methDec1Pat.match(s, pos)
                     name = mres2.group("name")
                     if ptr := mres2.group("ptr"):
-                        ptr = _tpSpaceRepPat.sub(lambda m: "%" if m.group(1) else "", ptr)
+                        ptr = _tpSpaceRepPat.sub(lambda m: "`" if m.group(1) else "", ptr)
                     else:
                         ptr = ""
                     pos = mres2.end()

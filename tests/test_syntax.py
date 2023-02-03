@@ -52,12 +52,12 @@ class SyntaxTests(TestCase):
         inputOutput = [ 
             (s:="<>",    ("<>", len(s))),
             (s:="<int>", ("<int>", len(s))),
-            (s:="<unsigned   int>", ("<unsigned%int>", len(s))),
-            (s:="< unsigned   int,    long>", ("<unsigned%int`long>", len(s))),
-            (s:="< unsigned   int,    long, unsigned\tshort>", ("<unsigned%int`long`unsigned%short>", len(s))), 
-            (s:="< std::vector < int, Aloc > >", ("<std::vector<int`Aloc>>", len(s))),
-            (s:="< std::vector < int, Aloc > >; xxx", ("<std::vector<int`Aloc>>", s.index(";"))),
-            (s:="< std::vector < int, Aloc > >  ; xxx", ("<std::vector<int`Aloc>>", s.index(";") - 2))
+            (s:="<unsigned   int>", ("<unsigned`int>", len(s))),
+            (s:="< unsigned   int,    long>", ("<unsigned`int,`long>", len(s))),
+            (s:="< unsigned   int,    long, unsigned\tshort>", ("<unsigned`int,`long,`unsigned`short>", len(s))), 
+            (s:="< std::vector < int, Alloc > >", ("<std::vector<int,`Alloc>`>", len(s))),
+            (s:="< std::vector < int, Alloc > >; xxx", ("<std::vector<int,`Alloc>`>", s.index(";"))),
+            (s:="< std::vector < int, Alloc > >  ; xxx", ("<std::vector<int,`Alloc>`>", s.index(";") - 2))
             ]
 
         for input, expRes in inputOutput:
@@ -67,13 +67,13 @@ class SyntaxTests(TestCase):
     def test_parseTypeProt(self):
         inputOutput = [ 
             (s:="int", ("int", len(s))),
-            (s:="const int",   ("const%int", len(s))),
-            (s:="const unsigned int", ("const%unsigned%int", len(s))),
-            (s:="typename const unsigned int", ("typename%const%unsigned%int", len(s))),
+            (s:="const int",   ("const`int", len(s))),
+            (s:="const unsigned int", ("const`unsigned`int", len(s))),
+            (s:="typename const unsigned int", ("typename`const`unsigned`int", len(s))),
                         
             (s:="const * int", ("const*int", len(s))),
-            (s:="const long long&", ("const%long%long&", len(s))),
-            (s:="const long long  typename&", ("const%long%long%typename&", len(s))),
+            (s:="const long long&", ("const`long`long&", len(s))),
+            (s:="const long long  typename&", ("const`long`long`typename&", len(s))),
 
             (s:="int[10]", ("int[10]", len(s))),
             (s:="int  [   10 + 20 * (30)  ]", ("int[10+20*(30)]", len(s))),
@@ -84,14 +84,14 @@ class SyntaxTests(TestCase):
 
             (s:="vector<int>", ("vector<int>", len(s))),
             (s:="vector  <  int  >", ("vector<int>", len(s))),
-            (s:="vector  <  int, Alloc  >", ("vector<int`Alloc>", len(s))),
+            (s:="vector  <  int, Alloc  >", ("vector<int,`Alloc>", len(s))),
 
-            (s:="std::vector< std::vector < int, Aloc > >", 
-                ("std::vector<std::vector<int`Aloc>>", len(s))),
-            (s:="std::vector< std::vector < int, Aloc > > :: iterator", 
-                ("std::vector<std::vector<int`Aloc>>::iterator", len(s))),
-            (s:="std::vector< std::vector < int, Aloc > > :: iterator * const * const&", 
-                ("std::vector<std::vector<int`Aloc>>::iterator*const*const&", len(s)))
+            (s:="std::vector< std::vector < int, Alloc > >", 
+                ("std::vector<std::vector<int,`Alloc>`>", len(s))),
+            (s:="std::vector< std::vector < int, Alloc > > :: iterator", 
+                ("std::vector<std::vector<int,`Alloc>`>::iterator", len(s))),
+            (s:="std::vector< std::vector < int, Alloc > > :: iterator * const * const&", 
+                ("std::vector<std::vector<int,`Alloc>`>::iterator*const*const&", len(s)))
             ]
 
         for input, expRes in inputOutput:
@@ -116,18 +116,18 @@ class SyntaxTests(TestCase):
     def test_parseMethPrototype(self):
         inputOutput = [ 
             (s:="foo()", ("foo()", [], len(s))),
-            (s:="foo(unsigned    char  )", ("foo(unsigned%char)", [None], len(s))),
+            (s:="foo(unsigned    char  )", ("foo(unsigned`char)", [None], len(s))),
             (s:="foo(int i)", ("foo(int)", ["i"], len(s))),
             (s:="foo(  int i  )   const", ("foo(int) const", ["i"], len(s))),
             (s:="foo(  int i, char* str  )   const", ("foo(int, char*) const", ["i", "str"], len(s))),
             (s:="ClassA::foo(  int i, char * const str  )", ("ClassA::foo(int, char*const)", ["i", "str"], len(s))),
-            (s:="ClassA::foo(int &i, long  long  )", ("ClassA::foo(int&, long%long)", ["i", None], len(s))),
-            (s:="ClassA:: ~ ClassA(long int )", ("ClassA::~ClassA(long%int)", [None], len(s))),
+            (s:="ClassA::foo(int &i, long  long  )", ("ClassA::foo(int&, long`long)", ["i", None], len(s))),
+            (s:="ClassA:: ~ ClassA(long int )", ("ClassA::~ClassA(long`int)", [None], len(s))),
 
             (s:="ClassA  ::  f(std::vector< int, std::Alloc >, int i, char * const str  )", 
-                ("ClassA::f(std::vector<int`std::Alloc>, int, char*const)", [None, "i", "str"], len(s))),
+                ("ClassA::f(std::vector<int,`std::Alloc>, int, char*const)", [None, "i", "str"], len(s))),
             (s:="ClassA  ::  f(std::vector< int, std::Alloc > vec, int i, char * const str  )", 
-                ("ClassA::f(std::vector<int`std::Alloc>, int, char*const)", ["vec", "i", "str"], len(s))),
+                ("ClassA::f(std::vector<int,`std::Alloc>, int, char*const)", ["vec", "i", "str"], len(s))),
                 
             (s:="CvCity::getProductionPerTurn(ProductionCalc::flags flags = ProductionCalc::Yield) const",
                 ("CvCity::getProductionPerTurn(ProductionCalc::flags) const", ["flags"], len(s))),
