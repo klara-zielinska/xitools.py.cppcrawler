@@ -35,16 +35,16 @@ class SyntaxTests(TestCase):
         self.assertEqual(
             Syntax.makeMethProtRe("UnitSortMove::getUnitValue(const`CvPlayer*, const`CvCity*, UnitTypes) const"),
             r"UnitSortMove\s*::\s*getUnitValue\s*\(\s*"
-                r"const\s+CvPlayer\s*\*\s*(?:\b(?P<argname>\w+))?(?:\s*=\s*"f"(?:{synt._optValRe}))?\s*,\s*"
-                r"const\s+CvCity\s*\*\s*(?:\b(?P<argname>\w+))?(?:\s*=\s*"f"(?:{synt._optValRe}))?\s*,\s*"
-                r"UnitTypes\s*(?:\b(?P<argname>\w+))?(?:\s*=\s*"f"(?:{synt._optValRe}))?"
+                r"const\s+CvPlayer\s*\*\s*\b(?P<argname>\w*)(?:\s*=\s*"f"(?:{synt._optValRe}))?\s*,\s*"
+                r"const\s+CvCity\s*\*\s*\b(?P<argname>\w*)(?:\s*=\s*"f"(?:{synt._optValRe}))?\s*,\s*"
+                r"UnitTypes\s*\b(?P<argname>\w*)(?:\s*=\s*"f"(?:{synt._optValRe}))?"
             r"\s*\)\s*const")
         self.assertEqual(
             Syntax.makeMethProtRe("getUnitValue(std::pair<const`CvPlayer*,`const`CvCity*>)"),
             r"getUnitValue\s*\(\s*std\s*::\s*pair\s*<\s*"
                 r"const\s+CvPlayer\s*\*\s*,\s*"
                 r"const\s+CvCity\s*\*\s*>\s*"
-                r"(?:\b(?P<argname>\w+))?(?:\s*=\s*"f"(?:{synt._optValRe}))?"
+                r"\b(?P<argname>\w*)(?:\s*=\s*"f"(?:{synt._optValRe}))?"
             r"\s*\)")
 
 
