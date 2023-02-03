@@ -93,14 +93,14 @@ class SourceMatchDict(dict):
         return scopes
 
 
-    def getSource(self, filename):
+    def getSource(self, filepath):
         if self.__sourceDir:
-            filename = os.path.abspath(self.__sourceDir + "/" + filename)
+            filepath = os.path.abspath(self.__sourceDir + "/" + filepath)
         else:
-            filename = os.path.abspath(filename)
+            filepath = os.path.abspath(filepath)
         found = None
         for src in self:
-            if src.filename() == filename:
+            if src.filename() == filepath:
                 if found: raise EnvironmentError("Multiple sources")
                 else:     found = src
         return found

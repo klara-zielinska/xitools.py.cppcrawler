@@ -1,6 +1,8 @@
 from .utils import *
 import regex
 
+_escCharsRe = r"[-#$&()*+.?\[\]^{|}~\\]"
+
 _commentRe  = r"//.*|/\*(?:[^\*]|\*[^/])*\*/"
 _commentPat = regex.compile(_commentRe)
 _stringRe   = r'"(?:[^"\\\n]|\\.)*"'
@@ -12,15 +14,16 @@ _clipPat    = regex.compile(_clipRe)
 _idRe = r"\b\w+\b"
 __  = f"(?:\\s|{_commentRe})"
 ___ = f"{__}*+"
-_optValRe   = f"{_stringRe}|{_charRe}|[\w\.-]+"
+_optValRe   = f"{_stringRe}|{_charRe}"r"|[-+]?[\w.]+" # expression should match constants and may accept more
 _optValPat  = regex.compile(_optValRe)
+_cSymbRe = (r">>=|<<=|<=>|->\*|"
+            r"\+=|-=|\*=|/=|%=|\^=|&=|\|=|<<|>>|==|!=|<=|>=|&&|\|\||\+\+|--|->|::|"
+            r'''(?<!\*)/(?![/*])|[-+*%^&|~!=<>,\[\]():?'"]''')
+_cSymbPat = regex.compile(_cSymbRe)
 
-_opSym0Re = r"\\({___}\\)|\\[{___}]"r"|,|[+\-\*/%^&|~!=<>]{1,3}"
+_opSym0Re = r"\({___}\)|\[{___}]"r"|[-+*/%^&|~!=<>,]{1,3}"
 _ptrArgOps0Re = r"(?:\s*[&*]\s*|\s*const\b\s*)+"
 
-#def _opRe(*, macroVar=False): 
-#    macroVar = r"|\w+\b" if macroVar else ""
-#    return r"\boperator\b"f"{___}(?:\\({___}\\)|\\[{___}]"r"|,|[+\-\*/%^&|~!=<>]{1,3}"f"{macroVar}"r")"
 
 # Warning: can find an expression or an initializer
 _methFinderRe = (f"(?:{_idRe}{___}::{___})?"
@@ -32,7 +35,12 @@ _endStrPat      = regex.compile(r'"|\r\n|$')
 _endComment1Pat = regex.compile(r'\r\n|$')
 _endCommentNOrNlPat = regex.compile(r'\*/|\r\n|$')
 
-
+# no function types support
+_methProtAPat = regex.compile(r"(?P<hd>(?:[^(]|\(`)++\()"
+                              r"(?:(?P<targ1>{tp})(?:, (?P<targ2>{tp}))*+)?"
+                              r"\)(?: (?P<mod>\w++))*".format(tp = r"(?:[^),]|[),]`)++"))
+_methProtPat = regex.compile(r"(?:(?P<cont>\w+)::)?(?P<name>operator\(\)|~?[^(]+)(?P<tempArgs><[^(]*>)?"
+                             r"\((?P<targ1>{tp})?(?:, (?P<targ2>{tp}))*\)(?P<const> const)?".format(tp = "[^),]+"))
 _methProt0Pat = regex.compile(r"(?:(?P<cont>\w+)::)?")
 _methProt1Pat = regex.compile(r"(?:(?P<cont>\w+)::)?+(?:~)?+(?P<name>[^(]+)\(")
 _methDec0Pat = regex.compile(r"(?<!(?:,)\s*)(?:\b(?P<cont>\w+)\s*::\s*)?(?P<dest>~\s*)?"
@@ -59,128 +67,198 @@ _tempArgs0Pat = regex.compile(r"\s*<\s*")
 _tempArgs1Pat = regex.compile(r"\s*,\s*")
 _tempArgs2Pat = regex.compile(r"\s*>")
 _lineStartPat = regex.compile(r"^|\r\n")
-_indentPat = regex.compile(r"(?<=^|\r\n)([ \t]*+)")
+_indentPat = regex.compile(r"(?<=^|\r\n)[ \t]*")
 _expr0Pat = regex.compile(r"\s*+[^\(\)\[\],]+(?P<popen>\(|\[)?(?<!\s)")
 _expr1Pat = regex.compile(r"\s*,?\s*")
 _expr2Pat = regex.compile(r"[\)\]]")
 _classStructHead0Re = r"\b({keyword})\s+({name})\b\s*"
 _classStructHead1Pat = regex.compile(r"\s*(?::(?!:)(?:[^;\{]|"f"{_commentRe}"r")*+)?(?=\{)")
+_tpProtSymbPat = regex.compile(r"::|[<>*&`%]")
 
 
+
+## Class for parsing and manipulating C++ syntax.
 class Syntax:
+
+    ## Regular expression matching comments.
     commentRe  = _commentRe
+    ## Syntax.commentRe compiled with regex.compile.
     commentPat = _commentPat
+    ## Regular expression matching string literals.
     stringRe   = _stringRe
+    ## Syntax.stringRe compiled with regex.compile.
     stringPat  = _stringPat
+    ## Regular expression matching string literals.
     charRe     = _charRe
+    ## Syntax.charRe compiled with regex.compile.
     charPat    = _charPat
+    ## Regular expression matching clipped ranges - comments, string or char literals.
     clipRe     = _clipRe
+    ## Syntax.clipRe compiled with regex.compile.
     clipPat    = _clipPat
-    #opRe       = _opRe
+    ## Regular expression that can be used to find a potential method or function prototype.
+    # To confirm if it is the prototype, call Syntax.parseMethPrototype.
     methFinderRe = _methFinderRe
 
 
+    ## Given a method prototype in the normal form (see Syntax.parseMethPrototype) returns the base name.
+    #
+    # E.g., passing `"Foo::bar(int i)"` returns `"bar"`.
     def methProtName(prot):
         mres = _methProt1Pat.match(prot)
         assert mres, prot
         return mres.group("name")
-
     
-    def unindent(code):
-        comPrefix = maxCommonPrefix(_indentPat.findall(code))
-        return regex.sub(f"(^|\r\n){comPrefix}", lambda mres: mres.group(1), code)
         
-
-    def indent(code, ind):
-        return _lineStartPat.sub(lambda mres: mres.group(0) + ind, code)
-
-
-    #def makeClassPrefixRe(cname):
-    #    return _classStructPrefixRe.format(keyword="class", name=cname)
+    ## Adds an indentation to all lines.
+    #
+    # @param indent  String to be inserted.
+    def addIndent(code, indent):
+        return _lineStartPat.sub(lambda mres: mres.group(0) + indent, code)\
 
 
-    #def makeStructPrefixRe(sname):
-    #    return _classStructPrefixRe.format(keyword="struct", name=sname)
+    def _makeNamespacePrefixRe(name):
+        return f"namespace{___}(?P<name>{name}){___}{{"
+
+
+    ## Helper that given a piece of a prototype in the base normal form returns a regular expression that matches it.
+    #
+    # Base prototype normal form:
+    # * no white spaces,
+    # * a single `` ` `` in places where a white space is required (e.g., ``unsigned`int``),
+    # * sequences `>>` split with `` ` `` if they are not a single operator (e.g. ``vector<vector<int>`>``),
+    # * the 3 symbols: `(` `)` `,` followed by `` ` `` (e.g., <int,`pair<int,`int>`>).
+    #
+    # The backtick `` ` `` should be understand as a separator between tokens or an escape character. The second
+    # is utilised in method/function prototypes (see Syntax.makeMethProtRe).
+    #
+    # @param prot     Piece of a prototype (e.g., type, template arguments) in the base normal form.
+    # @param hdSpace  Specifies if the result should match white spaces at the start.
+    # @param tlSpace  Specifies if the result should match white spaces at the end.
+    # @return         Regular exression matching `prot` in C++ code. Specifically it is `prot` with:
+    # * removed `` ` ``,
+    # * escaped `regex` symbols,
+    # * white space patterns added around symbolic tokens,
+    # * it is assumed that only correct C++ code is matched,
+    # * currently no support for comments inside prototypes.
+    def makeBaseProtRe(prot, hdSpace=False, tlSpace=False):
+        re = _cSymbPat.sub(lambda m: f"\\s*{regex.escape(m.group(0), literal_spaces=True)}\\s*", prot)
+        if hdSpace: re = r"\s*" + re
+        if tlSpace: re = re + r"\s*"
+        
+        re = regex.sub(r"\b`\b", r"\\s+", re)
+        re = (re.replace("`", "")
+                .replace(r"\s*\s*", r"\s*"))
+        if not hdSpace: re = regex.sub(r"^\\s\*", "", re)
+        if not tlSpace: re = regex.sub(r"\\s\*$", "", re)
+        return re
     
 
-    def makeNamespacePrefixRe(nsname):
-        return r"namespace\s+(?P<name>{})\b(?:\s|{})*{{".format(nsname, _commentRe)
-
-
-    def makeDirectCallRe(methnames):
-        return  r"([^\w\.:]|this->|[^-]>)(" + r"\(|".join(methnames) + r"\()"
-
-
-    # normal form of the type required:
-    # - no leading and trailing spaces,
-    # - all spaces replaced by single % , no %% allowed,
-    # - all , replaced by ` ,
-    # - no comments
+    ## Given a C++ type in the base normal form returns a regular expression that matches it.
+    #
+    # This is the same with Syntax.makeBaseProtRe.
     def makeTypeRe(tp):
-        tpRegex = regex.sub(r"[<>\*&`%]|::", lambda m: f"\\s*{m.group()}\\s*", tp)
-        tpRegex = (tpRegex
-                    .replace("`", r",")
-                    .replace(r"\s**\s*", r"\s*\*\s*")
-                    .replace(r"\s*\s*", r"\s*")
-                    .replace(r"\s*%\s*", r"\s+"))
-        tpRegex = regex.sub(r"^\\s\*", "", tpRegex)
-        tpRegex = regex.sub(r"\\s\*$", "", tpRegex)
-        return tpRegex
+        return Syntax.makeBaseProtRe(tp)
+
+        #tpRegex = _tpProtSymbPat.sub(lambda m: f"\\s*{m.group()}\\s*", tp)
+        #tpRegex = (tpRegex
+        #            .replace("`", r",")
+        #            .replace(r"\s**\s*", r"\s*\*\s*")
+        #            .replace(r"\s*\s*", r"\s*")
+        #            .replace(r"\s*%\s*", r"\s+"))
+        #tpRegex = regex.sub(r"^\\s\*", "", tpRegex)
+        #tpRegex = regex.sub(r"\\s\*$", "", tpRegex)
+        #return tpRegex
 
 
-    # no template class support
-    # normal form of the prototype required:
-    # - no result type at the begining,
-    # - normalised types (see above),
-    # - no argument names,
-    # - exactly 1 space after , and between ) and const at the end, no other spaces,
-    # - no comments
+    ## Given a method or function prototype in the normal form returns a regular expression that matches it.
+    #
+    # Method/function prototype normal form:
+    # * no return type,
+    # * prefix before argument parentheses has to be in the base normal form (see Syntax.makeBaseProtRe),
+    # * the argument parenteses has to contain only types of arguments in the base normal form split with ``', '`` and
+    # no extra spaces,
+    # * after the parenteses ``' const'`` is allowed.
+    #
+    # @param prot  Valid method/function prototype in the normal form (see Syntax.parseMethPrototype).
+    # @return      Regular exression matching the method/function prototype in C++ code, i.e., 
+    # * removed `` ` ``,
+    # * escaped `regex` symbols,
+    # * white space patterns added around symbolic tokens,
+    # * patterns for argument names added (matched names are stored in the group `argname`),
+    # * patterns for default values added - only literals supported,
+    # * it is assumed that only correct C++ code is matched,
+    # * currently no support for comments inside prototypes.
     def makeMethProtRe(prot):
-        typeRe = r"[^\),]+"
-        protRe = (r"(?:(?P<cont>\w+)::)?(?P<name>operator\(\)|~?[^(]+)(?P<tempArgs><[^(]*>)?"
-                  r"\((?P<targ1>{tp})?(?:, (?P<targ2>{tp}))*\)(?P<const> const)?".format(tp = typeRe))
-        mres = regex.fullmatch(protRe, prot)
-        protRegex = "(?<!::\s*)"
-        if mres.group('cont'):
-            protRegex += f"{mres.group('cont')}\\s*::\\s*"
-        assert not mres.group('tempArgs'), "Template arguments currenly not supported"
-        protRegex += f"(?P<methname>{mres.group('name')})\\s*\(\\s*"
-        if mres.group('targ1'): #
-            protRegex += (Syntax.makeTypeRe(mres.group('targ1')) + 
-                          r"\s*(?:\b(?P<argname>\w+)\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?")
+        mres = _methProtAPat.fullmatch(prot)
+        re = Syntax.makeBaseProtRe(mres.group("hd"))
+        if tp := mres.group('targ1'):
+            tp2 = Syntax.makeBaseProtRe(tp, True)
+            re += (tp2 + 
+                   r"\s*\b(?P<argname>\w*)(?:\s*=\s*"f"(?:{_optValRe}))?")
             for tp in mres.captures('targ2'):
-                protRegex += (r",\s*" + Syntax.makeTypeRe(tp) + 
-                              r"\s*(?:\b(?P<argname>\w+)\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?")
+                re += (r"\s*,\s*"f"{Syntax.makeBaseProtRe(tp)}"
+                       r"\s*\b(?P<argname>\w*)(?:\s*=\s*"f"(?:{_optValRe}))?")
         else:
-            protRegex += "(?P<argname>a^)?"
-        protRegex += r"\)"
-        if mres.group('const'):
-            protRegex += r"\s*const"
-        return protRegex
+            re += r"(?P<argname>a^)?" # introduces the required argname group in the expression with a false pattern
+        re += r"\s*\)"
+        if mods := mres.captures("mod"):
+            re += r"\s*" + "\s+".join(mods)
+        return re
+
+        #mres = _methProtPat.fullmatch(prot)
+        #protRegex = "(?<!::\s*)"
+        #if mres.group('cont'):
+        #    protRegex += f"{mres.group('cont')}\\s*::\\s*"
+        #assert not mres.group('tempArgs'), "Template arguments currenly not supported"
+        #protRegex += f"(?P<methname>{mres.group('name')})\\s*\(\\s*"
+        #if mres.group('targ1'): #
+        #    protRegex += (Syntax.makeBaseProtRe(mres.group('targ1')) + 
+        #                  r"\s*(?:\b(?P<argname>\w+)\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?")
+        #    for tp in mres.captures('targ2'):
+        #        protRegex += (r",\s*" + Syntax.makeBaseProtRe(tp) + 
+        #                      r"\s*(?:\b(?P<argname>\w+)\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?")
+        #else:
+        #    protRegex += "(?P<argname>a^)?"
+        #protRegex += r"\)"
+        #if mres.group('const'):
+        #    protRegex += r"\s*const"
+        #return protRegex
 
 
+    ## Returns code without comments.
     def removeComments(code):
         code = regex.sub(r"//.*", "", code)
         code = regex.sub(r"/\*(?:[^\*]|\*[^/])*\*/", "", code)
         return code
 
 
-    def parseTempArgs(s, begin=0):
-        mres = _tempArgs0Pat.match(s, begin)
+    ## Parses template arguments and returns them in the normal form.
+    #
+    # @param code   The code.
+    # @param start  Positions from where to start parsing.
+    # @return       Parsed arguments in the normal form or `None`.
+    def parseTempArgs(code, start=0):
+        mres = _tempArgs0Pat.match(code, start)
         if not mres: return None
-        if s[mres.end()] == '>': return ("<>", mres.end() + 1)
+        if code[mres.end()] == '>': return ("<>", mres.end() + 1)
 
-        (tp, pos) = Syntax.parseType(s, mres.end())
+        (tp, pos) = Syntax.parseType(code, mres.end())
         args = "<" + tp
-        while mres := _tempArgs1Pat.match(s, pos):
+        while mres := _tempArgs1Pat.match(code, pos):
             args += "`"
-            (tp, pos) = Syntax.parseType(s, mres.end())
+            (tp, pos) = Syntax.parseType(code, mres.end())
             args += tp
-        mres = _tempArgs2Pat.match(s, pos)
-        assert mres, f'Expected ">" found "{s[pos:pos+10]}"'
+        mres = _tempArgs2Pat.match(code, pos)
+        assert mres, f'Expected ">" found "{code[pos:pos+10]}"'
         return (args + ">", mres.end())
 
 
+        # normal form of the type required:
+    # - no leading and trailing spaces,
+    # - all spaces replaced by single % , no %% allowed,
+    # - all , replaced by ` ,
+    # - no comments
     def parseType(s, begin=0):
         mres = _tpOps0Pat.match(s, begin)
         tp = mres.group(1)
@@ -297,7 +375,13 @@ class Syntax:
 
         return (targs, nargs, mods, mres.end())
 
-
+        # no template class support
+    # normal form of the prototype required:
+    # - no result type at the begining,
+    # - normalised types (see above),
+    # - no argument names,
+    # - exactly 1 space after , and between ) and const at the end, no other spaces,
+    # - no comments
     def parseMethPrototype(s, begin=0):
         try:
             mres = _methDec0Pat.match(s, begin)
@@ -330,9 +414,9 @@ class Syntax:
             return None
 
     def parseClassStructPrefix(kind, name, s, begin=0):
-        assert kind in ["class", "struct", None]
+        assert kind in ["class", "struct", "*"]
 
-        if not kind: kind = "class|struct"
+        if kind == "*": kind = "class|struct"
         re = _classStructHead0Re.format(keyword=kind, name=name)
         mres = regex.match(re, s, pos=begin)
         if not mres: return None
