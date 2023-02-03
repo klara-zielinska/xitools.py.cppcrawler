@@ -1,10 +1,12 @@
 from xitools.cppcrawler import Syntax
 from unittest import TestCase
 from tstutils import *
+import xitools.cppcrawler.syntax as synt
 
 
 class SyntaxTests(TestCase):
-
+    
+    maxDiff  = None
     testSuit = "SyntaxTests"
 
 
@@ -12,12 +14,38 @@ class SyntaxTests(TestCase):
         prepareTmpDir(SyntaxTests.testSuit)
 
 
-    def test_unindent(self):
-        self.assertEqual(Syntax.unindent("  l1\r\n   llllll2\r\n  \r\n    l3"), "l1\r\n llllll2\r\n\r\n  l3")
+    def test_addIndent(self):
+        self.assertEqual(Syntax.addIndent("l1\r\nllllll2\r\n\r\nl3", "    "), 
+                         "    l1\r\n    llllll2\r\n    \r\n    l3")
 
 
-    def test_indent(self):
-        self.assertEqual(Syntax.indent("l1\r\nllllll2\r\n\r\nl3", "    "), "    l1\r\n    llllll2\r\n    \r\n    l3")
+    def test_makeBaseProtRe(self):
+        self.assertEqual(Syntax.makeBaseProtRe("const`CvPlayer*", True), "\s*const\s+CvPlayer\s*\*")
+        self.assertEqual(Syntax.makeBaseProtRe("const`CvPlayer*", False, True), "const\s+CvPlayer\s*\*\s*")
+
+
+    def test_makeTypeRe(self):
+        self.assertEqual(Syntax.makeTypeRe("int"), "int")
+        self.assertEqual(Syntax.makeTypeRe("unsigned`int"), "unsigned\s+int")
+        self.assertEqual(Syntax.makeTypeRe("std::vector<std::pair<int,`bool>`>"), 
+                         "std\s*::\s*vector\s*<\s*std\s*::\s*pair\s*<\s*int\s*,\s*bool\s*>\s*>")
+
+
+    def test_makeMethProtRe(self):
+        self.assertEqual(
+            Syntax.makeMethProtRe("UnitSortMove::getUnitValue(const`CvPlayer*, const`CvCity*, UnitTypes) const"),
+            r"UnitSortMove\s*::\s*getUnitValue\s*\(\s*"
+                r"const\s+CvPlayer\s*\*\s*(?:\b(?P<argname>\w+))?(?:\s*=\s*"f"(?:{synt._optValRe}))?\s*,\s*"
+                r"const\s+CvCity\s*\*\s*(?:\b(?P<argname>\w+))?(?:\s*=\s*"f"(?:{synt._optValRe}))?\s*,\s*"
+                r"UnitTypes\s*(?:\b(?P<argname>\w+))?(?:\s*=\s*"f"(?:{synt._optValRe}))?"
+            r"\s*\)\s*const")
+        self.assertEqual(
+            Syntax.makeMethProtRe("getUnitValue(std::pair<const`CvPlayer*,`const`CvCity*>)"),
+            r"getUnitValue\s*\(\s*std\s*::\s*pair\s*<\s*"
+                r"const\s+CvPlayer\s*\*\s*,\s*"
+                r"const\s+CvCity\s*\*\s*>\s*"
+                r"(?:\b(?P<argname>\w+))?(?:\s*=\s*"f"(?:{synt._optValRe}))?"
+            r"\s*\)")
 
 
     def test_parseTempArgsProt(self):
