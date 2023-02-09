@@ -5,7 +5,8 @@ import filecmp
 
 
 class SourceFileTests(TestCase):
-
+    
+    maxDiff  = None
     testSuit = "SourceFileTests"
 
 
@@ -467,25 +468,25 @@ class SourceFileTests(TestCase):
         
         src = SourceFile(dataFilepath("civ", "CvUnitSort.h"))
         
-        self.assertTrue(src.tryScopeToClassBody("UnitSortBase"))
+        self.assertTrue(src.tryScopeToClassBody("*", "UnitSortBase"))
         self.assertEqual(src._intScopes(), [(src.intPos(688), src.intPos(1242), ('class', 'UnitSortBase'))])
 
 
         src.resetScopes()
 
-        src.tryScopeToClassBody("UnitSortMove")
+        src.tryScopeToClassBody("class", "UnitSortMove")
         self.assertEqual(src._intScopes(), [(src.intPos(1513), src.intPos(1678), ('class', 'UnitSortMove'))])
 
 
         src.resetScopes()
 
-        src.tryScopeToClassBody("UnitSortL.*")
+        src.tryScopeToClassBody("class", "UnitSortL.*")
         self.assertEqual(src._intScopes(), [(src.intPos(3562), src.intPos(4041), ('class', 'UnitSortList')), 
                                             (src.intPos(4075), src.intPos(4315), ('class', 'UnitSortListWrapper'))])
         
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-        self.assertFalse(src.tryScopeToClassBody("\w+"))
+        self.assertFalse(src.tryScopeToClassBody("union|class", r"\w+"))
         
 
     def test_tryScopeToStructBody(self):
@@ -590,3 +591,43 @@ class SourceFileTests(TestCase):
         self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod2_insert_prof2.h"), 
                                     tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof2.h"), False))
         
+
+    def test_intLocation(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+
+        self.assertEqual(src.intLocation(694), (17, 65))
+        self.assertEqual(src.intLocation(691, int=True), (17, 65))
+
+
+    def test_blockEnd(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertEqual(src.blockEnd(809), 1025)
+        self.assertEqual(src.blockEnd(800, int=True), 1025 - 30)
+
+
+    def test_isClipped(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertTrue(src.isClipped(80))
+        self.assertFalse(src.isClipped(343))
+        self.assertTrue(src.isClipped(352))
+        self.assertFalse(src.isClipped(1030))
+
+        self.assertTrue(src.isClipped(80, int=True))
+        self.assertFalse(src.isClipped(343, int=True))
+        self.assertTrue(src.isClipped(1030, int=True))
+        
+        
+    def test_getClipRange(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertEqual(src.getClipRange(80), (76, 91, 's'))
+        self.assertEqual(src.getClipRange(1030), None)
+
+        self.assertEqual(src.getClipRange(80, int=True), (76, 91, 's'))
+        self.assertEqual(src.getClipRange(1030, int=True), (1032 - 30, 1139 - 30, 'c'))

@@ -4,7 +4,8 @@ from tstutils import *
 
 
 class SourceRegexMatchTests(TestCase):
-
+    
+    maxDiff  = None
     testSuit = "SourceRegexMatchTests"
 
 

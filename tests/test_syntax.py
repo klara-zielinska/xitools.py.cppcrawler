@@ -48,7 +48,27 @@ class SyntaxTests(TestCase):
             r"\s*\)")
 
 
-    def test_parseTempArgsProt(self):
+    def test_extractMethProtId(self):
+        self.assertEqual(Syntax.extractMethProtId("Foo::bar() const"), 
+                         (["Foo", "bar"], "() const"))
+        self.assertEqual(Syntax.extractMethProtId("std::pair<T1,`T2>::pair(T1, T2)"), 
+                         (["std", "pair<T1,`T2>", "pair"], "(T1, T2)"))
+        self.assertEqual(Syntax.extractMethProtId(
+                             "A::B<std::pair<int,`char>,`std::pair<int,`int>`>::foo<std::vector<int>`>()"), 
+                         (["A", "B<std::pair<int,`char>,`std::pair<int,`int>`>", "foo<std::vector<int>`>"], "()"))
+
+
+    def test_extractMethBaseProt(self):
+        self.assertEqual(Syntax.extractMethBaseProt("Foo::bar() const"), 
+                         ("bar() const", ["Foo"]))
+        self.assertEqual(Syntax.extractMethBaseProt("std::pair<T1,`T2>::pair(T1, T2)"), 
+                         ("pair(T1, T2)", ["std", "pair<T1,`T2>"]))
+        self.assertEqual(Syntax.extractMethBaseProt(
+                             "A::B<std::pair<int,`char>,`std::pair<int,`int>`>::foo<std::vector<int>`>()"), 
+                         ("foo<std::vector<int>`>()", ["A", "B<std::pair<int,`char>,`std::pair<int,`int>`>"]))
+
+
+    def test__parseTempArgsApp(self):
         inputOutput = [ 
             (s:="<>",    ("<>", len(s))),
             (s:="<int>", ("<int>", len(s))),
@@ -61,7 +81,7 @@ class SyntaxTests(TestCase):
             ]
 
         for input, expRes in inputOutput:
-            self.assertEqual(Syntax.parseTempArgs(input), expRes)
+            self.assertEqual(Syntax._parseTempArgsApp(input), expRes)
 
 
     def test_parseTypeProt(self):
@@ -110,7 +130,7 @@ class SyntaxTests(TestCase):
             ]
 
         for input, expRes in inputOutput:
-            self.assertEqual(Syntax.parseExpr(input), expRes, f"Input: {input}")
+            self.assertEqual(Syntax._parseMethDefaultExpr(input), expRes, f"Input: {input}")
 
 
     def test_parseMethPrototype(self):
@@ -137,7 +157,45 @@ class SyntaxTests(TestCase):
 
             (s:="foo()  {}", ("foo()", [], 5)),
             (s:="foo() const {}", ("foo() const", [], s.index("{") - 1)),
+
+            (s:="operator+(const A &x, const A & y)", ("operator+(const`A&, const`A&)", ["x", "y"], len(s))),
+            (s:="A<unsigned int>::operator - (A<unsigned int> const &x)", 
+                ("A<unsigned`int>::operator-(A<unsigned`int>const&)", ["x"], len(s))),
+            (s:="operator( )(long long int)", ("operator()(long`long`int)", [None], len(s))),
+            (s:="operator [\t](long long int)", ("operator[](long`long`int)", [None], len(s))),
+            (s:="operator int() const", 
+                ("operator`int() const", [], len(s))),
+            (s:="operator std :: vector <float> *() const", 
+                ("operator`std::vector<float>*() const", [], len(s))),
+
+
+            ("AI_DEFAULT_STRATEGY             (1 << 0)", None),
+            ("foreach(GameObjectTypes eType, bst::function<void (const CvGameObject*)> func)", None)
             ]
 
         for input, expRes in inputOutput:
             self.assertEqual(Syntax.parseMethPrototype(input), expRes, f"Input: {input}")
+
+
+    def test_parseClassPrefix(self):
+         self.assertEqual(Syntax.parseClassPrefix(s := "class A;"), ("class", "A", None, set(), len(s) - 1))
+         self.assertEqual(Syntax.parseClassPrefix(s := "struct A;"), ("struct", "A", None, set(), len(s) - 1))
+         self.assertEqual(Syntax.parseClassPrefix(s := "class A<unsigned int> : public B {"), 
+                          ("class", "A", "<unsigned`int>", set(), len(s) - 1))
+
+
+    def test_removeComments(self):
+         self.assertEqual(Syntax.removeComments(
+"""/* test */
+void ClassA::foo(int i /* = 1 */, char c)
+{
+    // dummy
+}
+"""),
+
+"""
+void ClassA::foo(int i , char c)
+{
+    
+}
+""")
