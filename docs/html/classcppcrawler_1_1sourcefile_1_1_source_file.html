@@ -199,7 +199,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>isClipped</b> (self, p
 <tr class="separator:a14b6abf86d6af7102e77128a78a32188"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a14a7152dd10ba0c255ada13fdf23eb11"><td class="memItemLeft" align="right" valign="top"><a id="a14a7152dd10ba0c255ada13fdf23eb11" name="a14a7152dd10ba0c255ada13fdf23eb11"></a>
 def&#160;</td><td class="memItemRight" valign="bottom"><b>getClipRange</b> (self, pos, *int=False)</td></tr>
-<tr class="memdesc:a14a7152dd10ba0c255ada13fdf23eb11"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the first clipped range containg the position, that is, a comment, a string literal or a char literal. <br /></td></tr>
+<tr class="memdesc:a14a7152dd10ba0c255ada13fdf23eb11"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the first clipped range containing the position, that is, a comment, a string literal or a char literal. <br /></td></tr>
 <tr class="separator:a14a7152dd10ba0c255ada13fdf23eb11"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a458238bbd8a0e6bf41c2b5bb8071e4a0"><td class="memItemLeft" align="right" valign="top"><a id="a458238bbd8a0e6bf41c2b5bb8071e4a0" name="a458238bbd8a0e6bf41c2b5bb8071e4a0"></a>
 def&#160;</td><td class="memItemRight" valign="bottom"><b>lineStart</b> (self, pos)</td></tr>
@@ -308,7 +308,7 @@ string&#160;</td><td class="memItemRight" valign="bottom"><b>defaultIndent</b> =
 <div class="textblock"><p>Class for storing C++ source files. </p>
 <p><a class="anchor" id="SourceFile"></a> Currently only Windows files are supported.</p>
 <p>The line break sequences &lt;new line&gt; are removed from the code on loading, however their positions are stored.</p>
-<p>The code positions taken and returned by methods are by default positions in the original code in public methods, and, respectively, positions in the internal code representation in internal methods (names starting with _).</p>
+<p>The code positions taken and returned by public methods are by default positions in the original code. Respectively, positions operated by internal methods (names starting with _) are the internal positions.</p>
 <p>Some public methods accept the int switch that makes them operate on internal positions when set True. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="abf61545d125d892fc37a8469c7414cf6" name="abf61545d125d892fc37a8469c7414cf6"></a>
@@ -861,9 +861,9 @@ string&#160;</td><td class="memItemRight" valign="bottom"><b>defaultIndent</b> =
 <p>Replaces matches in the source. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">tmatches</td><td>List of SourceMatche-s or pairs (SourceMatch, tag). A tag can be anything. </td></tr>
-    <tr><td class="paramname">repl</td><td>Replacement - a string or a function accepting either a SourceMatche or (SourceMatch, tag), depending on the type of tmatches, and returning a string. The string cannot contain sequences &lt;new line&gt;. </td></tr>
-    <tr><td class="paramname">sorted</td><td>If True, tmatches are assumed to be sorted with respect to the position. Otherwise tmatches are copied and sorted. </td></tr>
+    <tr><td class="paramname">tmatches</td><td>List of SourceMatche or pairs <code>(</code> <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> <code>, tag)</code> &ndash; <code>tag</code> can be anything. The matches cannot overlap &ndash; the result unspecifed. </td></tr>
+    <tr><td class="paramname">repl</td><td>Replacement - a string or a function accepting either a SourceMatche or <code>(</code> <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> <code>, tag)</code>, depending on the type of tmatches, and returning a string. The string cannot contain sequences <code>\&lt;new line&gt;</code>. </td></tr>
+    <tr><td class="paramname">sorted</td><td>If <code>True</code>, tmatches are assumed to be sorted with respect to the position. Otherwise tmatches are copied and sorted. </td></tr>
   </table>
   </dd>
 </dl>

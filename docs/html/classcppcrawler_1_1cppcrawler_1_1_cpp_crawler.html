@@ -411,7 +411,12 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>sourceRelPath</b> (sel
   <table class="params">
     <tr><td class="paramname">prots</td><td>Collection of method/function prototypes in the normal form (cf. Syntax module). </td></tr>
     <tr><td class="paramname">sources</td><td>Sources to search. A glob file path (e.g., "*.h"), a SourceFile, or a list of either. </td></tr>
-    <tr><td class="paramname">returnType</td><td>Type of the returned value: 's' - SourceMatchDict with prototypes being tags, 'c' - dictionary { 'class name' : list[( 'prototype', (SourceFile, SourceMatch)|None )] }, 'l' - list[ ( 'prototype', (SourceFile, SourceMatch)|None ) ]. </td></tr>
+    <tr><td class="paramname">returnType</td><td>Type of the returned value:<ul>
+<li>'s' - SourceMatchDict with prototypes being tags,</li>
+<li>'c' - dictionary { 'class name' : list[( 'prototype', (SourceFile, SourceMatch)|None )] },</li>
+<li>'l' - list[ ( 'prototype', (SourceFile, SourceMatch)|None ) ]. </li>
+</ul>
+</td></tr>
   </table>
   </dd>
 </dl>

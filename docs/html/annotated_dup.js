@@ -16,7 +16,7 @@ var annotated_dup =
         [ "SourceMatchDict", "classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html", "classcppcrawler_1_1sourcematchdict_1_1_source_match_dict" ]
       ] ],
       [ "sourcescopedict", null, [
-        [ "SourceScopeDict", "classcppcrawler_1_1sourcescopedict_1_1_source_scope_dict.html", null ]
+        [ "SourceScopeDict", "classcppcrawler_1_1sourcescopedict_1_1_source_scope_dict.html", "classcppcrawler_1_1sourcescopedict_1_1_source_scope_dict" ]
       ] ],
       [ "syntax", null, [
         [ "Syntax", "classcppcrawler_1_1syntax_1_1_syntax.html", "classcppcrawler_1_1syntax_1_1_syntax" ]

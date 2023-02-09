@@ -111,14 +111,14 @@ $(document).ready(function(){initNavTree('classcppcrawler_1_1sourcematchdict_1_1
 
 <div class="header">
   <div class="summary">
-<a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pub-static-attribs">Static Public Attributes</a> &#124;
 <a href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict-members.html">List of all members</a>  </div>
   <div class="headertitle"><div class="title">cppcrawler.sourcematchdict.SourceMatchDict Class Reference</div></div>
 </div><!--header-->
 <div class="contents">
 
-<p>Dictionary class from <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> to <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> list that stores matches for further processing.  
+<p>Dictionary class that stores <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> for further processing.  
  <a href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#details">More...</a></p>
 <div class="dynheader">
 Inheritance diagram for cppcrawler.sourcematchdict.SourceMatchDict:</div>
@@ -129,47 +129,52 @@ Inheritance diagram for cppcrawler.sourcematchdict.SourceMatchDict:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:add3ca2a71e373544beea108469dd6905"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#add3ca2a71e373544beea108469dd6905">__init__</a> (self, other={}, *tagged=None, sourceDir=None)</td></tr>
+<tr class="memitem:add3ca2a71e373544beea108469dd6905"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#add3ca2a71e373544beea108469dd6905">__init__</a> (self, other={}, *tagged=None, <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a7a163a359c8e9913c0c772ac403a0b5c">sourceDir</a>=None)</td></tr>
 <tr class="separator:add3ca2a71e373544beea108469dd6905"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad88584b8bdeac9c47dbe65badacbdf9f"><td class="memItemLeft" align="right" valign="top"><a id="ad88584b8bdeac9c47dbe65badacbdf9f" name="ad88584b8bdeac9c47dbe65badacbdf9f"></a>
-def&#160;</td><td class="memItemRight" valign="bottom"><b>__iter__</b> (self)</td></tr>
-<tr class="memdesc:ad88584b8bdeac9c47dbe65badacbdf9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterator that skips the <code>None</code> key. <br /></td></tr>
-<tr class="separator:ad88584b8bdeac9c47dbe65badacbdf9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0a1a796f3cdfe488f7ee42016ae438e6"><td class="memItemLeft" align="right" valign="top"><a id="a0a1a796f3cdfe488f7ee42016ae438e6" name="a0a1a796f3cdfe488f7ee42016ae438e6"></a>
 def&#160;</td><td class="memItemRight" valign="bottom"><b>__add__</b> (self, other)</td></tr>
+<tr class="memdesc:a0a1a796f3cdfe488f7ee42016ae438e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Produces a <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html" title="Dictionary class that stores SourceMatch for further processing.">SourceMatchDict</a> containing all matches form both dictionaries. <br /></td></tr>
 <tr class="separator:a0a1a796f3cdfe488f7ee42016ae438e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7a163a359c8e9913c0c772ac403a0b5c"><td class="memItemLeft" align="right" valign="top"><a id="a7a163a359c8e9913c0c772ac403a0b5c" name="a7a163a359c8e9913c0c772ac403a0b5c"></a>
-def&#160;</td><td class="memItemRight" valign="bottom"><b>sourceDir</b> (self)</td></tr>
-<tr class="separator:a7a163a359c8e9913c0c772ac403a0b5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a90189d33da5d631cf2455538085bced5"><td class="memItemLeft" align="right" valign="top"><a id="a90189d33da5d631cf2455538085bced5" name="a90189d33da5d631cf2455538085bced5"></a>
-def&#160;</td><td class="memItemRight" valign="bottom"><b>insert</b> (self, src, tmatch)</td></tr>
-<tr class="separator:a90189d33da5d631cf2455538085bced5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0f7de8fe9e4ba0b713c5b600835d145e"><td class="memItemLeft" align="right" valign="top"><a id="a0f7de8fe9e4ba0b713c5b600835d145e" name="a0f7de8fe9e4ba0b713c5b600835d145e"></a>
-def&#160;</td><td class="memItemRight" valign="bottom"><b>filter</b> (self, predicate)</td></tr>
-<tr class="separator:a0f7de8fe9e4ba0b713c5b600835d145e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aab7420e68a4fd0cfeca2af0f93686d4d"><td class="memItemLeft" align="right" valign="top"><a id="aab7420e68a4fd0cfeca2af0f93686d4d" name="aab7420e68a4fd0cfeca2af0f93686d4d"></a>
-def&#160;</td><td class="memItemRight" valign="bottom"><b>precededWith</b> (self, re)</td></tr>
-<tr class="separator:aab7420e68a4fd0cfeca2af0f93686d4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6b70730bb89517f51f50993b3bea6fe5"><td class="memItemLeft" align="right" valign="top"><a id="a6b70730bb89517f51f50993b3bea6fe5" name="a6b70730bb89517f51f50993b3bea6fe5"></a>
-def&#160;</td><td class="memItemRight" valign="bottom"><b>notPrecededWith</b> (self, re)</td></tr>
-<tr class="separator:a6b70730bb89517f51f50993b3bea6fe5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:accbffa41c440c22209bc827246e71ca9"><td class="memItemLeft" align="right" valign="top"><a id="accbffa41c440c22209bc827246e71ca9" name="accbffa41c440c22209bc827246e71ca9"></a>
 def&#160;</td><td class="memItemRight" valign="bottom"><b>isTagged</b> (self)</td></tr>
+<tr class="memdesc:accbffa41c440c22209bc827246e71ca9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the dictionary is tagged. <br /></td></tr>
 <tr class="separator:accbffa41c440c22209bc827246e71ca9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1bdc4530bb91adbd4e96f52088ee1ee7"><td class="memItemLeft" align="right" valign="top"><a id="a1bdc4530bb91adbd4e96f52088ee1ee7" name="a1bdc4530bb91adbd4e96f52088ee1ee7"></a>
-def&#160;</td><td class="memItemRight" valign="bottom"><b>scopesBehind</b> (self)</td></tr>
-<tr class="separator:a1bdc4530bb91adbd4e96f52088ee1ee7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abe4d6d175d3d7fee7bd848fb9b042928"><td class="memItemLeft" align="right" valign="top"><a id="abe4d6d175d3d7fee7bd848fb9b042928" name="abe4d6d175d3d7fee7bd848fb9b042928"></a>
-def&#160;</td><td class="memItemRight" valign="bottom"><b>getSource</b> (self, filepath)</td></tr>
+<tr class="memitem:a7a163a359c8e9913c0c772ac403a0b5c"><td class="memItemLeft" align="right" valign="top"><a id="a7a163a359c8e9913c0c772ac403a0b5c" name="a7a163a359c8e9913c0c772ac403a0b5c"></a>
+def&#160;</td><td class="memItemRight" valign="bottom"><b>sourceDir</b> (self)</td></tr>
+<tr class="memdesc:a7a163a359c8e9913c0c772ac403a0b5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">The source directory &ndash; used to determine relative paths. <br /></td></tr>
+<tr class="separator:a7a163a359c8e9913c0c772ac403a0b5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abe4d6d175d3d7fee7bd848fb9b042928"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#abe4d6d175d3d7fee7bd848fb9b042928">getSource</a> (self, filepath)</td></tr>
+<tr class="memdesc:abe4d6d175d3d7fee7bd848fb9b042928"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the key <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> with the given file path.  <br /></td></tr>
 <tr class="separator:abe4d6d175d3d7fee7bd848fb9b042928"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3fde91ae5d728e9c5092250c1e026d15"><td class="memItemLeft" align="right" valign="top"><a id="a3fde91ae5d728e9c5092250c1e026d15" name="a3fde91ae5d728e9c5092250c1e026d15"></a>
-def&#160;</td><td class="memItemRight" valign="bottom"><b>isDictTagged</b> (d)</td></tr>
+<tr class="memitem:a90189d33da5d631cf2455538085bced5"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a90189d33da5d631cf2455538085bced5">insert</a> (self, src, tmatch)</td></tr>
+<tr class="memdesc:a90189d33da5d631cf2455538085bced5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inserts a match (preserves the matches order).  <br /></td></tr>
+<tr class="separator:a90189d33da5d631cf2455538085bced5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac67aa2c9980f6c6c3f5926e0b60babe4"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#ac67aa2c9980f6c6c3f5926e0b60babe4">filter</a> (self, predicate, *new=False)</td></tr>
+<tr class="memdesc:ac67aa2c9980f6c6c3f5926e0b60babe4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Filters matches of the dictionary.  <br /></td></tr>
+<tr class="separator:ac67aa2c9980f6c6c3f5926e0b60babe4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a992ff032ffccb999933dca0cf74042eb"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a992ff032ffccb999933dca0cf74042eb">filterPrecededWith</a> (self, re, *new=False)</td></tr>
+<tr class="memdesc:a992ff032ffccb999933dca0cf74042eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Filters out matches that are not preceded with the given regular expression.  <br /></td></tr>
+<tr class="separator:a992ff032ffccb999933dca0cf74042eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aee6f759ca47fa6532758dc67dfc3d571"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#aee6f759ca47fa6532758dc67dfc3d571">filterNotPrecededWith</a> (self, re, *new=False)</td></tr>
+<tr class="memdesc:aee6f759ca47fa6532758dc67dfc3d571"><td class="mdescLeft">&#160;</td><td class="mdescRight">Filters out matches that are precoded with the given regular expression.  <br /></td></tr>
+<tr class="separator:aee6f759ca47fa6532758dc67dfc3d571"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1bdc4530bb91adbd4e96f52088ee1ee7"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a1bdc4530bb91adbd4e96f52088ee1ee7">scopesBehind</a> (self)</td></tr>
+<tr class="memdesc:a1bdc4530bb91adbd4e96f52088ee1ee7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns SourceScopeDict with the scopes placed behind matches in <code>self</code>.  <br /></td></tr>
+<tr class="separator:a1bdc4530bb91adbd4e96f52088ee1ee7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3fde91ae5d728e9c5092250c1e026d15"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a3fde91ae5d728e9c5092250c1e026d15">isDictTagged</a> (d)</td></tr>
+<tr class="memdesc:a3fde91ae5d728e9c5092250c1e026d15"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determines if a dictionary is tagged.  <br /></td></tr>
 <tr class="separator:a3fde91ae5d728e9c5092250c1e026d15"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
+Static Public Attributes</h2></td></tr>
+<tr class="memitem:a56aae5c65307c25a4dff5b0e227cffbd"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a56aae5c65307c25a4dff5b0e227cffbd">missing</a> = None</td></tr>
+<tr class="memdesc:a56aae5c65307c25a4dff5b0e227cffbd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Contains information about missed searches in the form of a dictionary from <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> to either pairs <code>(None, tag)</code> or <code>None</code> values &ndash; depending on the tagging.  <br /></td></tr>
+<tr class="separator:a56aae5c65307c25a4dff5b0e227cffbd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Dictionary class from <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> to <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> list that stores matches for further processing. </p>
-<p>It inherits from <code>dict</code> where keys are <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> and values are lists of either <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> or pairs <code>(</code> <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> <code>, tag)</code> &ndash; <code>tag</code> may be anything. The lists are positionally ordered. The <code>None</code> key contains pairs <code>(None, tag)</code> or <code>None</code> values &ndash; depending on the tagging &ndash; that correspond to missed searches. This approach is chosen to allow unifor proccessing of all items.</p>
-<dl class="section remark"><dt>Remarks</dt><dd>The <code>iter</code> operator returns an iterator that skips the <code>None</code> key. The iterators returned by <code>items()</code>, <code>keys()</code> and <code>values()</code> include all items. </dd></dl>
+<div class="textblock"><p>Dictionary class that stores <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> for further processing. </p>
+<p>It inherits from <code>dict</code> where keys are <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> and values are lists of either <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> or pairs <code>(</code> <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> <code>, tag)</code> &ndash; <code>tag</code> may be anything. The lists are ordered as inserted.</p>
+<p>A user is obligated to maintain the order in value lists if he manipulates them directly. For safe insertion see <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a90189d33da5d631cf2455538085bced5" title="Inserts a match (preserves the matches order).">SourceMatchDict.insert</a>. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="add3ca2a71e373544beea108469dd6905" name="add3ca2a71e373544beea108469dd6905"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#add3ca2a71e373544beea108469dd6905">&#9670;&#160;</a></span>__init__()</h2>
@@ -210,12 +215,278 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>isDictTagged</b> (d)</
 </div><div class="memdoc">
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">other</td><td>Dictionary to be copied. </td></tr>
-    <tr><td class="paramname">tagged</td><td>Determinies if values contain tags. If <code>None</code> it is determined on <code>other</code>. </td></tr>
-    <tr><td class="paramname">sourceDir</td><td>Root source directory - used to determine relative paths. </td></tr>
+    <tr><td class="paramname">other</td><td>Dictionary to be copied. May be <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html" title="Dictionary class that stores SourceMatch for further processing.">SourceMatchDict</a> or other dictionary with te same structure. In the latter case the it cannot contain key <code>None</code>. </td></tr>
+    <tr><td class="paramname">tagged</td><td>Determinies if matches should contain tags. If <code>None</code>, it is determined upon <code>other</code>. </td></tr>
+    <tr><td class="paramname">sourceDir</td><td>The source directory &ndash; used to determine relative paths. </td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a id="ac67aa2c9980f6c6c3f5926e0b60babe4" name="ac67aa2c9980f6c6c3f5926e0b60babe4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac67aa2c9980f6c6c3f5926e0b60babe4">&#9670;&#160;</a></span>filter()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">def cppcrawler.sourcematchdict.SourceMatchDict.filter </td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>self</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>predicate</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">*&#160;</td>
+          <td class="paramname"><em>new</em> = <code>False</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Filters matches of the dictionary. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">predicate</td><td>Function that if given <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> and a possibly tagged <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a>, determines whether the match should be included. </td></tr>
+    <tr><td class="paramname">new</td><td>If <code>True</code>, then instead modifying <code>self</code> a new dictionary is returned. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The modified dictionary. </dd></dl>
+
+</div>
+</div>
+<a id="aee6f759ca47fa6532758dc67dfc3d571" name="aee6f759ca47fa6532758dc67dfc3d571"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aee6f759ca47fa6532758dc67dfc3d571">&#9670;&#160;</a></span>filterNotPrecededWith()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">def cppcrawler.sourcematchdict.SourceMatchDict.filterNotPrecededWith </td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>self</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>re</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">*&#160;</td>
+          <td class="paramname"><em>new</em> = <code>False</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Filters out matches that are precoded with the given regular expression. </p>
+<p>See <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#ac67aa2c9980f6c6c3f5926e0b60babe4" title="Filters matches of the dictionary.">SourceMatchDict.filter</a>. </p>
+
+</div>
+</div>
+<a id="a992ff032ffccb999933dca0cf74042eb" name="a992ff032ffccb999933dca0cf74042eb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a992ff032ffccb999933dca0cf74042eb">&#9670;&#160;</a></span>filterPrecededWith()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">def cppcrawler.sourcematchdict.SourceMatchDict.filterPrecededWith </td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>self</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>re</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">*&#160;</td>
+          <td class="paramname"><em>new</em> = <code>False</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Filters out matches that are not preceded with the given regular expression. </p>
+<p>See <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#ac67aa2c9980f6c6c3f5926e0b60babe4" title="Filters matches of the dictionary.">SourceMatchDict.filter</a>. </p>
+
+</div>
+</div>
+<a id="abe4d6d175d3d7fee7bd848fb9b042928" name="abe4d6d175d3d7fee7bd848fb9b042928"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abe4d6d175d3d7fee7bd848fb9b042928">&#9670;&#160;</a></span>getSource()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">def cppcrawler.sourcematchdict.SourceMatchDict.getSource </td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>self</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>filepath</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Returns the key <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> with the given file path. </p>
+<p>If the file path is relative and the source directory is set, the path is relative to this directory. Otherwise relative paths are evaluated from the current directory. </p>
+
+</div>
+</div>
+<a id="a90189d33da5d631cf2455538085bced5" name="a90189d33da5d631cf2455538085bced5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a90189d33da5d631cf2455538085bced5">&#9670;&#160;</a></span>insert()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">def cppcrawler.sourcematchdict.SourceMatchDict.insert </td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>self</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>src</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>tmatch</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Inserts a match (preserves the matches order). </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">src</td><td>The <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>. </td></tr>
+    <tr><td class="paramname">tmatch</td><td><a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> or pair <code>(</code> <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> <code>, tag)</code>. If the match is <code>None</code>, <code>tmatch</code> is appended in the <code>None</code> key in the <code>src</code> subkey. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a3fde91ae5d728e9c5092250c1e026d15" name="a3fde91ae5d728e9c5092250c1e026d15"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3fde91ae5d728e9c5092250c1e026d15">&#9670;&#160;</a></span>isDictTagged()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">def cppcrawler.sourcematchdict.SourceMatchDict.isDictTagged </td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>d</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Determines if a dictionary is tagged. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">d</td><td><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html" title="Dictionary class that stores SourceMatch for further processing.">SourceMatchDict</a> or a non-empty <code>{</code> <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> <code>: &lt;tmatch&gt; list }</code> where <code>&lt;tmatch&gt;</code> is a possibly tagged <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a>. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a1bdc4530bb91adbd4e96f52088ee1ee7" name="a1bdc4530bb91adbd4e96f52088ee1ee7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1bdc4530bb91adbd4e96f52088ee1ee7">&#9670;&#160;</a></span>scopesBehind()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">def cppcrawler.sourcematchdict.SourceMatchDict.scopesBehind </td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>self</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Returns SourceScopeDict with the scopes placed behind matches in <code>self</code>. </p>
+<p>If <code>self</code> if tagged, the tags are copied. </p>
+
+</div>
+</div>
+<h2 class="groupheader">Member Data Documentation</h2>
+<a id="a56aae5c65307c25a4dff5b0e227cffbd" name="a56aae5c65307c25a4dff5b0e227cffbd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a56aae5c65307c25a4dff5b0e227cffbd">&#9670;&#160;</a></span>missing</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">cppcrawler.sourcematchdict.SourceMatchDict.missing = None</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Contains information about missed searches in the form of a dictionary from <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> to either pairs <code>(None, tag)</code> or <code>None</code> values &ndash; depending on the tagging. </p>
+<p>Each item corresponds to one miss. This approach is chosen to allow proccessing uniformely with other items in the main dictionary (one can use the same function to iterate over them). </p>
 
 </div>
 </div>
