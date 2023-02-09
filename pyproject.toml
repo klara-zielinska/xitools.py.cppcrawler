@@ -1,13 +1,12 @@
 [project]
 name = "xitools.py.cppcrawler"
 version = "0.0.1"
+description = "Module for C++ code processing and syntax analysis"
 authors = [
-  { name="Klara Zielińska", email="clare.blackwater2@gmail.com" },
+    {name = "Klara Zielińska", email = "clare.blackwater2@gmail.com"},
 ]
-description = "Module for C++ code syntax analysis"
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 dependencies = [
-	"numpy",
 	"regex"
 ]
 classifiers = [
@@ -19,3 +18,6 @@ classifiers = [
 [tool.pdm]
 includes = ["src"]
 package-dir = "src"
+[build-system]
+requires = ["pdm-pep517>=1.0"]
+build-backend = "pdm.pep517.api"
