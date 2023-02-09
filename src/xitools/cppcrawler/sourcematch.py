@@ -2,6 +2,7 @@ from abc import ABC, abstractclassmethod
 
 
 ## Abstract class to represent regex.Match-like matches in SourceFile-s.
+# @anchor SourceMatch
 class SourceMatch(ABC):
     
     ## Constructor that has to be called in child classes.

@@ -1,7 +1,6 @@
 from .utils import *
 import regex
 
-_escCharsRe = r"[-#$&()*+.?\[\]^{|}~\\]"
 
 _commentRe  = r"//.*|/\*(?:[^\*]|\*[^/])*\*/"
 _commentPat = regex.compile(_commentRe)
@@ -21,7 +20,7 @@ _cSymbRe = (r">>=|<<=|<=>|->\*|"
             r'''(?<!\*)/(?![/*])|[-+*%^&|~!=<>,\[\]():?'"]''')
 _cSymbPat = regex.compile(_cSymbRe)
 
-_opSym0Re = r"\({___}\)|\[{___}]"r"|[-+*/%^&|~!=<>,]{1,3}"
+_opSym0Re = f"(?:(?P<brackR>\\({___}\\))|(?P<brackS>\\[{___}])"r"|[-+*/%^&|~!=<>,]{1,3})"
 _ptrArgOps0Re = r"(?:\s*[&*]\s*|\s*const\b\s*)+"
 
 
@@ -29,11 +28,6 @@ _ptrArgOps0Re = r"(?:\s*[&*]\s*|\s*const\b\s*)+"
 _methFinderRe = (f"(?:{_idRe}{___}::{___})?"
                  r"(?:~|\boperator\b"f"|{_idRe}(?:{___}<(?:{_clipRe}|[^;{{}}])*+>)?){___}"r"\(")
 
-_clipBeginPat   = regex.compile(r"['\"]|//|/\*|\r\n")
-_endCharPat     = regex.compile(r"'|\r\n|$")
-_endStrPat      = regex.compile(r'"|\r\n|$')
-_endComment1Pat = regex.compile(r'\r\n|$')
-_endCommentNOrNlPat = regex.compile(r'\*/|\r\n|$')
 
 # no function types support
 _methProtAPat = regex.compile(r"(?P<hd>(?:[^(]|\(`)++\()"
@@ -42,18 +36,20 @@ _methProtAPat = regex.compile(r"(?P<hd>(?:[^(]|\(`)++\()"
 _methProtPat = regex.compile(r"(?:(?P<cont>\w+)::)?(?P<name>operator\(\)|~?[^(]+)(?P<tempArgs><[^(]*>)?"
                              r"\((?P<targ1>{tp})?(?:, (?P<targ2>{tp}))*\)(?P<const> const)?".format(tp = "[^),]+"))
 _methProt0Pat = regex.compile(r"(?:(?P<cont>\w+)::)?")
-_methProt1Pat = regex.compile(r"(?:(?P<cont>\w+)::)?+(?:~)?+(?P<name>[^(]+)\(")
+_methProt1Pat = regex.compile(r"\([^`]")
+_methProt2Pat = regex.compile(r"(?:(?P<seg>)::)?(?P<seg>[^:]+)(?:::(?P<seg>[^:]+))*")
 _methDec0Pat = regex.compile(r"(?<!(?:,)\s*)(?:\b(?P<cont>\w+)\s*::\s*)?(?P<dest>~\s*)?"
                              r"\b(?:operator\b\s*(?P<op>"f"(?:{_opSym0Re})?)"
-                                r"|(?P<name>\w+)\s*(?=(?P<x>\(|<)))")
+                             r"|(?P<name>\w+)\s*(?=(?P<x>\(|<)))")
+_methDec00Pat = regex.compile(f"(?<!(?:,){___})")
+_methDec01Pat = regex.compile(f"(?P<nssep>::{___})?"
+                              f"(?:\\boperator\\b{___}(?P<op>{_opSym0Re})?{___}|"
+                              f"(?P<dest>~{___})?\\b(?P<id>\\w+){___})")
 _methDec0aPat = regex.compile(f"\\({___}")
-_methDec1Pat = regex.compile(f"{___}"
-                             r"(?:\((?P<ptr>"f"{_ptrArgOps0Re}"r")(?P<name>\w+)?"f"{___}"r"\)"
-                                 r"|(?P<name>\w+)?)"
-                             f"{___}(?=(?P<fn>\())?")
+_methDec1Pat = regex.compile(f"{___}"r"(?P<name>\w*)"f"{___}")
 _methDec1aPat = regex.compile(f"{___}(?P<opt>=){___}")
 _methDec2Pat = regex.compile(f"{___},?{___}")
-_methDec3Pat = regex.compile(f"\\)({___}const)?")
+_methDec3Pat = regex.compile(f"{___}const")
 _tpOps0Pat = regex.compile(r"\s*((?:[\*&]|const\b|typename\b|\s+)*)")
 _tpOps1Pat = regex.compile(r"(?:[\*&]|const\b|\s+)*(?<!\s)")
 _tpSpaceRepPat = regex.compile(r"(\b\s+\b)|\s+")
@@ -70,9 +66,9 @@ _lineStartPat = regex.compile(r"^|\r\n")
 _indentPat = regex.compile(r"(?<=^|\r\n)[ \t]*")
 _expr0Pat = regex.compile(r"\s*+[^\(\)\[\],]+(?P<popen>\(|\[)?(?<!\s)")
 _expr1Pat = regex.compile(r"\s*,?\s*")
-_expr2Pat = regex.compile(r"[\)\]]")
-_classStructHead0Re = r"\b({keyword})\s+({name})\b\s*"
-_classStructHead1Pat = regex.compile(r"\s*(?::(?!:)(?:[^;\{]|"f"{_commentRe}"r")*+)?(?=\{)")
+_expr2Pat = regex.compile(r"[)\]]")
+_classHead0Pat = regex.compile(f"\\b(?P<kind>class|struct|union){___}(?P<name>\\w+){___}")
+_classHead1Pat = regex.compile(f"(?P<mod>final)?{___}"r"(?::(?!:)(?:"f"{__}"r"|[^;{])*+)?(?=;|\{)")
 _tpProtSymbPat = regex.compile(r"::|[<>*&`%]")
 
 
@@ -99,15 +95,6 @@ class Syntax:
     ## Regular expression that can be used to find a potential method or function prototype.
     # To confirm if it is the prototype, call Syntax.parseMethPrototype.
     methFinderRe = _methFinderRe
-
-
-    ## Given a method prototype in the normal form (see Syntax.parseMethPrototype) returns the base name.
-    #
-    # E.g., passing `"Foo::bar(int i)"` returns `"bar"`.
-    def methProtName(prot):
-        mres = _methProt1Pat.match(prot)
-        assert mres, prot
-        return mres.group("name")
     
         
     ## Adds an indentation to all lines.
@@ -126,11 +113,10 @@ class Syntax:
     # Base prototype normal form:
     # * no white spaces,
     # * a single `` ` `` in places where a white space is required (e.g., ``unsigned`int``),
-    # * sequences `>>` split with `` ` `` if they are not a single operator (e.g. ``vector<vector<int>`>``),
+    # * sequences `>>` split with `` ` `` if they are not a single operator (e.g., ``vector<vector<int>`>``),
     # * the 3 symbols: `(` `)` `,` followed by `` ` `` (e.g., <int,`pair<int,`int>`>).
     #
-    # The backtick `` ` `` should be understand as a separator between tokens or an escape character. The second
-    # is utilised in method/function prototypes (see Syntax.makeMethProtRe).
+    # The backtick `` ` `` should be understand as a separator between tokens or an escape character. 
     #
     # @param prot     Piece of a prototype (e.g., type, template arguments) in the base normal form.
     # @param hdSpace  Specifies if the result should match white spaces at the start.
@@ -176,9 +162,12 @@ class Syntax:
     # Method/function prototype normal form:
     # * no return type,
     # * prefix before argument parentheses has to be in the base normal form (see Syntax.makeBaseProtRe),
-    # * the argument parenteses has to contain only types of arguments in the base normal form split with ``', '`` and
-    # no extra spaces,
-    # * after the parenteses ``' const'`` is allowed.
+    # * argument parenteses has to contain only types of arguments in the base normal form split with ``", "`` and
+    # no extra spaces,,
+    # * argument parentheses are not escaped with `` ` ``
+    # * after the parenteses ``" const"`` is allowed.
+    #
+    # E.g., ``Foo::bar(unsigned`int, vector<pair<int,`int>`>*) const`` .
     #
     # @param prot  Valid method/function prototype in the normal form (see Syntax.parseMethPrototype).
     # @return      Regular exression matching `prot` in C++ code. Specifically it is `prot` with:
@@ -226,247 +215,276 @@ class Syntax:
         #return protRegex
 
 
+    ## Given a method or function prototype in the normal form returns its id-expression in list form.
+    #
+    # @param prot  Method or function prototype in the normal form (see Syntax.makeMethProtRe).
+    # @return      Pair `(id, rem)`, where `id` is a qualified id in the form of a list of name specifiers 
+    #              (the specifiers of `A::B` are `A`, `B`) and `rem` is the reimaing prototype part.
+    #
+    # @par  Example
+    # ``extractMethProtId("::std::vector<std::pair<int,`int>`>::clear()")``  
+    # returns ``(["", "std", "vector<std::pair<int,`int>`>", "clear"], "()")``
+    def extractMethProtId(prot):
+        argsStart = _methProt1Pat.search(prot).start()
+        idExpr = prot[:argsStart]
+        id = []
+        buf = ""
+        tempArgsOpen = 0
+        for seg in _methProt2Pat.fullmatch(idExpr).captures("seg"):
+            tempArgsOpen += seg.count("<") - seg.count(">")
+            if tempArgsOpen == 0:
+                id.append(buf + seg)
+                buf = ""
+            else:
+                buf += seg + "::"
+        assert tempArgsOpen == 0, f"Prototype illformed: {prot}"
+        return (id, prot[argsStart:])
+
+
+    ## Given a method or function prototype in the normal form returns its id-expression in list form.
+    #
+    # @param prot  Method or function prototype in the normal form (see Syntax.makeMethProtRe).
+    # @return      Pair `(baseProt, idPref)`, where `baseProt` is the suffix of `prot` starting from the method's name 
+    #              and `idPref` is the remaining prefix split into a list of id specifiers.
+    #
+    # @par  Example
+    # ``extractMethBaseProt("::std::vector<std::pair<int,`int>`>::clear()")``  
+    # returns ``("clear()", ["", "std", "vector<std::pair<int,`int>`>"])``
+    def extractMethBaseProt(prot):
+        (id, rem) = Syntax.extractMethProtId(prot)
+        return (id[-1] + rem, id[:-1])
+
+
     ## Returns code without comments.
     def removeComments(code):
         code = regex.sub(r"//.*", "", code)
         code = regex.sub(r"/\*(?:[^\*]|\*[^/])*\*/", "", code)
         return code
 
-
-    ## Parses template arguments and returns them in the normal form.
+    
+    ## Parses a type and returns it in the base prototype normal form.
     #
     # @param code   The code.
-    # @param start  Positions from where to start parsing.
-    # @return       Parsed arguments in the normal form or `None`.
-    def parseTempArgs(code, start=0):
+    # @param start  Starting position.
+    # @return       Pair `(tp, end)` or `None`, where `tp` is the parsed type in the base prtotype normal 
+    #               form (see Syntax.makeBaseProtRe) and `end` is the end position of the parsed code piece.
+    #
+    # @remark  Currently no support for function types, possibly more (the autor hasn't checked
+    #          the whole C++ syntax).
+    #
+    # @par  Example
+    # Input: `"std::vector <std::pair<unsigned int , const char *>>"`   
+    # Output: ``"std::vector<std::pair<unsigned`int,`const`char*>`>"``
+    def parseType(code, start=0):
+        mres = _tpOps0Pat.match(code, start)
+        tp = mres.group(1)
+        pos = mres.end()
+        
+        if mres := _tpBuiltInPat.match(code, pos):
+            tp += mres.group(0)
+            pos = mres.end()
+
+        else:
+            mres = _tpName0Pat.match(code, pos)
+            if not mres: return None
+
+            tp += mres.group(1)
+            pos = mres.end()
+            match Syntax._parseTempArgsApp(code, pos):
+                case (args, pos): tp += args
+
+            while mres := _tpName1Pat.match(code, pos):
+                tp += "::" + mres.group(1)
+                pos = mres.end()
+                match Syntax._parseTempArgsApp(code, pos):
+                    case (args, pos): tp += args
+                    
+        if mres := _tpArrPat.match(code, pos):
+            tp += mres.group(0)
+            pos = mres.end()
+
+        mres = _tpTailPat.match(code, pos)
+        tp += mres.group(0)
+        pos = mres.end()
+        
+        mres = _tpOps1Pat.match(code, pos)
+        tp += mres.group(0)
+        pos = mres.end()
+
+        tp = _tpSpaceRepPat.sub(lambda m: "`" if m.group(1) else "", tp)
+        return (tp, pos)
+    
+
+    def _parseTempArgsApp(code, start=0):
         mres = _tempArgs0Pat.match(code, start)
         if not mres: return None
         if code[mres.end()] == '>': return ("<>", mres.end() + 1)
 
-        (tp, pos) = Syntax.parseType(code, mres.end())
+        match Syntax.parseType(code, mres.end()):
+            case None:      return None
+            case (tp, pos): pass;
         args = "<" + tp
         while mres := _tempArgs1Pat.match(code, pos):
             args += ",`"
             (tp, pos) = Syntax.parseType(code, mres.end())
             args += tp
+
         mres = _tempArgs2Pat.match(code, pos)
-        assert mres, f'Expected ">" found "{code[pos:pos+10]}"'
+        if not mres: return None
+
         if args.endswith(">"): args += "`>"
         else:                  args += ">"
         return (args, mres.end())
 
 
-        # normal form of the type required:
-    # - no leading and trailing spaces,
-    # - all spaces replaced by single % , no %% allowed,
-    # - all , replaced by ` ,
-    # - no comments
-    def parseType(s, begin=0):
-        mres = _tpOps0Pat.match(s, begin)
-        tp = mres.group(1)
-        pos = mres.end()
-        
-        if mres := _tpBuiltInPat.match(s, pos):
-            tp += mres.group(0)
-            pos = mres.end()
-
-        else:
-            mres = _tpName0Pat.match(s, pos)
-            if not mres: return None
-
-            tp += mres.group(1)
-            pos = mres.end()
-            match Syntax.parseTempArgs(s, pos):
-                case (args, pos): tp += args
-
-            while mres := _tpName1Pat.match(s, pos):
-                tp += "::" + mres.group(1)
-                pos = mres.end()
-                match Syntax.parseTempArgs(s, pos):
-                    case (args, pos): tp += args
-                    
-        if mres := _tpArrPat.match(s, pos):
-            tp += mres.group(0)
-            pos = mres.end()
-
-        mres = _tpTailPat.match(s, pos)
-        tp += mres.group(0)
-        pos = mres.end()
-        
-        mres = _tpOps1Pat.match(s, pos)
-        tp += mres.group(0)
-        pos = mres.end()
-
-        if mres := _tpFuncPat.match(s, pos):
-            return None
-            #if ptr := mres.group("ptr"): tp += "{"f"{ptr}""}"
-            #(targs, nargs, mods, pos) = Syntax.parseMethDecTail(s, mres.end())
-            #tp += "{" + "`".join(targs) + "}" + "%".join(mods)
-
-        tp = _tpSpaceRepPat.sub(lambda m: "`" if m.group(1) else "", tp)
-        return (tp, pos)
-
-
-    def parseExpr(s, begin=0):
-        mres = _expr0Pat.match(s, begin)
+    def _parseMethDefaultExpr(code, start=0):
+        mres = _expr0Pat.match(code, start)
         if not mres: return None
 
         expr = mres.group(0)
-        begin = mres.end()
+        start = mres.end()
         if opSym := mres.group("popen"):
             def readArg(pos):
-                match Syntax.parseExpr(s, begin):
+                match Syntax._parseMethDefaultExpr(code, start):
                     case (exprArg, pos):
-                        mres2 = _expr1Pat.match(s, pos)
+                        mres2 = _expr1Pat.match(code, pos)
                         exprArg += mres2.group(0)
                         pos = mres2.end()
                         return (pos, exprArg)
                     case None:
                         return None
-            while res := readArg(begin): 
-                begin = res[0]
+            while res := readArg(start): 
+                start = res[0]
                 expr += res[1]
 
-            mres = _expr2Pat.match(s, begin)
+            mres = _expr2Pat.match(code, start)
             match opSym, mres.group(0):
                 case '(', ')': pass
                 case '[', ']': pass
                 case _:        return None
-            expr += s[begin]
-            begin += 1
+            expr += code[start]
+            start += 1
             
-        return (expr, begin)
+        return (expr, start)
 
 
-    def parseMethDecTail(s, begin=0):
-        mres = _methDec0aPat.match(s, begin)
+    def _parseMethArgs(code, start=0):
+        mres = _methDec0aPat.match(code, start)
+        if not mres: return None
+
         pos = mres.end()
         targs = []
         nargs = []
         def readArg(pos):
-            match Syntax.parseType(s, pos):
+            match Syntax.parseType(code, pos):
                 case None:
                     return None
 
                 case (tp, pos):
-                    mres2 = _methDec1Pat.match(s, pos)
-                    name = mres2.group("name")
-                    if ptr := mres2.group("ptr"):
-                        ptr = _tpSpaceRepPat.sub(lambda m: "`" if m.group(1) else "", ptr)
-                    else:
-                        ptr = ""
+                    mres2 = _methDec1Pat.match(code, pos)
+                    if not mres2: return None
+
+                    name = mres2.group("name") or None # if name = "", then None
                     pos = mres2.end()
-                    if mres2.group("fn"):
-                        return None
-                        #if ptr: tp += "{"f"{ptr}""}"
-                        #match Syntax.parseMethDecTail(s, pos):
-                        #    case None: return None
-                        #    case (targs2, nargs2, mods2, pos):
-                        #        tp += "{"f"{'`'.join(targs2)}""}" + "%".join(mods2)
                     targs.append(tp)
                     nargs.append(name)
-                    if (mres2 := _methDec1aPat.match(s, pos)) and (exppos := Syntax.parseExpr(s, mres2.end())):
+                    if (    mres3 := _methDec1aPat.match(code, pos)) and (
+                            exppos := Syntax._parseMethDefaultExpr(code, mres3.end())):
                         pos = exppos[1]
-                    mres2 = _methDec2Pat.match(s, pos)
-                    return (mres2.end(), None)
+                    mres4 = _methDec2Pat.match(code, pos)
+                    return (mres4.end(), None)
         while (res := readArg(pos)): pos = res[0]
-
-        mres = _methDec3Pat.match(s, pos)
-        if not mres: return None
-        mods = ["const"] if mres.group(1) else []
-
-        return (targs, nargs, mods, mres.end())
-
-        # no template class support
-    # normal form of the prototype required:
-    # - no result type at the begining,
-    # - normalised types (see above),
-    # - no argument names,
-    # - exactly 1 space after , and between ) and const at the end, no other spaces,
-    # - no comments
-    def parseMethPrototype(s, begin=0):
-        try:
-            mres = _methDec0Pat.match(s, begin)
-            if not mres: return None
-
-            contName = mres.group("cont")
-            dest = mres.group("dest")
-
-            if op := mres.group("op"):
-                id = f"operator{op}"
-            elif (pos := mres.end("op")) >= 0:
-                match Syntax.parseType(s, pos):
-                    case (tp, pos): id = f"operator {tp}"
-                    case None: return None
-            else:
-                pos = mres.end()
-                match Syntax.parseTempArgs(s, pos):
-                    case (tempArgs, pos): id = mres.group("name") + tempArgs
-                    case None:            id = mres.group("name")
-
-            (targs, nargs, mods, pos) = Syntax.parseMethDecTail(s, pos)
         
-            prot = contName + "::" if contName else "" 
-            prot += "~" if dest else ""
-            prot += f"{id}({', '.join(targs)})"
-            if mods: prot += " " + " ".join(mods)
-            return (prot, nargs, pos)
-
-        except TypeError:
-            return None
-
-    def parseClassStructPrefix(kind, name, s, begin=0):
-        assert kind in ["class", "struct", "*"]
-
-        if kind == "*": kind = "class|struct"
-        re = _classStructHead0Re.format(keyword=kind, name=name)
-        mres = regex.match(re, s, pos=begin)
-        if not mres: return None
-        pos = mres.end()
-
-        match Syntax.parseTempArgs(s, pos):
-            case (_, pos): pass
-
-        if mres2 := _classStructHead1Pat.match(s, pos): 
-            return (mres.group(1), mres.group(2), mres2.end())
+        if code[pos] == ")":
+            return (targs, nargs, pos + 1)
         else:
             return None
 
     
-    # prot in normal form (see above)
-    # no template specialization support (e.g. A<std::vector<int>>::foo() )
-    def extractProtContainerName(prot):
-        mres = _methProt0Pat.match(prot)
-        return (mres.group("cont"), prot[mres.end():])
-    
+    ## Parses a method prototype and returns it in the normal form.
+    #
+    # @param code   The code.
+    # @param start  Starting position.
+    # @return       Pair `(prot, end)` or `None`, where `prot` is the parsed prototype in the normal 
+    #               form (see Syntax.makeMethProtRe) and `end` is the end position of the parsed code piece.
+    #
+    # @remark  Currently no support for function types, volatail modifiers, possibly more (the autor hasn't checked
+    #          the whole C++ syntax).
+    #
+    # @par  Example
+    # Input: `"std::vector <std::pair<unsigned int , const char *>>"`   
+    # Output: ``"std::vector<std::pair<unsigned`int,`const`char*>`>"``
+    def parseMethPrototype(code, start=0):
+        mres = _methDec00Pat.match(code, start)
+        if not mres: return None
 
-    def tempPar(n):
-        return "" if n == 0 else r"<(?:[^<>]|{})*>".format(Syntax.tempPar(n-1))
+        prot = ""
+        pos = start
+        
+        while mres := _methDec01Pat.match(code, pos):
+            if mres.group("nssep"): prot += "::"
+            
+            pos = mres.end()
+            if mres.group("id"):
+                if mres.group("dest"):
+                    prot += "~" + mres.group("id")
+                    break
+                else:
+                    prot += mres.group("id")
+                    match Syntax._parseTempArgsApp(code, pos):
+                        case (tempArgs, pos): prot += tempArgs
+
+            else: # operator
+                if op := mres.group("op"):
+                    if mres.group("brackR"):
+                        prot += f"operator()"
+                    elif mres.group("brackS"):
+                        prot += f"operator[]"
+                    else:
+                        prot += f"operator{op}"
+                else:
+                    match Syntax.parseType(code, pos):
+                        case (tp, pos): prot += f"operator`{tp}"
+                        case None:      return None
+                break
+
+        if not prot: return None
+
+        match Syntax._parseMethArgs(code, pos):
+            case (targs, nargs, pos): prot += f"({', '.join(targs)})"
+            case None:                return None
+            
+        if mres := _methDec3Pat.match(code, pos):
+            prot += " const"
+            pos = mres.end()
+
+        return (prot, nargs, pos)
 
 
-    def nextClipAndLineEnds(code, begin):
-        nls = []
-        while (mres := _clipBeginPat.search(code, begin)) and mres.group() == "\r\n":
-            nls.append(mres.end())
-            begin = mres.end()
+    ## Parses a class, structure or union prefix.
+    #
+    # Parsing ends on `;` or `{`.
+    #
+    # @param code   The code.
+    # @param start  Starting position.
+    # @return       Tuple `(kind, name, mods, tempArgs, end)` or `None`, where:
+    # * `kind` is: `"class"`, `"struct"` or `"union"`,
+    # * `tempArgs` are template arguments in the base normal form (see Syntax.makeBaseProtRe) or `None`,
+    # * `mods` is a set of modifiers: either `{ "final" }` or empty.
+    # * `end` is the end position of the parsed code piece (`code[end]` is `;` or `{`).
+    def parseClassPrefix(code, start=0):
+        mres = _classHead0Pat.match(code, start)
+        if not mres: return None
 
-        if mres:
-            match mres.group():
-                case "'": 
-                    return ((mres.start() + 1, _endCharPat.search(code, mres.end()).start(), 'c'), nls)
-                case '"':
-                    return ((mres.start() + 1, _endStrPat.search(code, mres.end()).start(), 's'), nls)
-                case '//':
-                    mres2 = _endComment1Pat.search(code, mres.end())
-                    return ((mres.end(), mres2.start(), 'c'), nls + [mres2.end()])
-                case '/*':
-                    begin = mres.end()
-                    while (mres2 := _endCommentNOrNlPat.search(code, begin)) and \
-                            mres2.group() == "\r\n":
-                        nls.append(mres2.end())
-                        begin = mres2.end()
-                    return ((mres.end(), mres2.start(), 'C'), nls)
-                case _:
-                    assert False, mres
+        kind = mres.group("kind")
+        name = mres.group("name")
+        pos  = mres.end()
 
-        return (None, nls)
+        match Syntax._parseTempArgsApp(code, pos):
+            case None:            tempArgs = None
+            case (tempArgs, pos): pass
+
+        if mres := _classHead1Pat.match(code, pos):
+            return (kind, name, tempArgs, set(mres.captures("mod")), mres.end())
+        else:
+            return None

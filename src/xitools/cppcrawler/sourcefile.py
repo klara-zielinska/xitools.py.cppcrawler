@@ -7,6 +7,12 @@ import errno
 import os
 
 
+_clipBeginPat   = regex.compile(r"['\"]|//|/\*|\r\n")
+_endCharPat     = regex.compile(r"'|\r\n|$")
+_endStrPat      = regex.compile(r'"|\r\n|$')
+_endComment1Pat = regex.compile(r'\r\n|$')
+_endCommentNOrNlPat = regex.compile(r'\*/|\r\n|$')
+
 _blockStartPat = regex.compile(
 	r"(?:(?P<ts>\s))*"
 	r"(?<=\r\n(?P<ind>[ \t]+))?(?P<ins>)(?=.*(?P<preproc>#(?:define|undef|if|ifdef|ifndef|else|endif|pragma)\b))?"
@@ -20,17 +26,18 @@ _blockStartSkipComPat = regex.compile(
 	r"(?:\r\n(?P<ind>[ \t]*))?")
 
 
+
 ## Class for storing C++ source files.
+#  @anchor SourceFile
 #
 # Currently only Windows files are supported.
 #
 # The line break sequences \<new line> are removed from the code on loading, however their positions are stored.
 #
-# The code positions taken and returned by methods are by default positions in the original code in public methods, 
-# and, respectively, positions in the internal code representation in internal methods (names starting with _).
+# The code positions taken and returned by public methods are by default positions in the original code. Respectively, 
+# positions operated by internal methods (names starting with _) are the internal positions.
 # 
 # Some public methods accept the int switch that makes them operate on internal positions when set True.
-#
 class SourceFile:
 
 	## Default indentation used in code generation.
@@ -221,7 +228,7 @@ class SourceFile:
 		return None
 	
 	
-	## Returns the first clipped range containg the position, that is, a comment, a string literal or a char literal. 
+	## Returns the first clipped range containing the position, that is, a comment, a string literal or a char literal. 
 	def getClipRange(self, pos, *, int=False):
 		if int: 
 			return self._getClipRange(pos)
@@ -369,13 +376,15 @@ class SourceFile:
 						yield wrapRes(mres, stag)
 
 
+	# start : int
 	def _matchPatUnscoped(self, pat, start, end=None, excludeClips=True):
 		if excludeClips and self._getClipRange(start):
 			return None
 		else:
 			return pat.match(self.__code, start, end)
 
-
+		
+	# start : int
 	def _fullmatchPatUnscoped(self, pat, start, end=None, excludeClips=True):
 		if excludeClips and self._getClipRange(start):
 			return None
@@ -470,6 +479,7 @@ class SourceFile:
 	#
 	# The matched range is specified with the start, end parameters. See SourceFile.find for more details.
 	def matchUnscoped(self, pat, start=0, end=None, *, excludeClips=True):
+		if start is None: start = 0
 		if type(pat) is not regex.Pattern:
 			pat = regex.compile(pat)
 		if start is not None: start = self.intPos(start)
@@ -480,6 +490,7 @@ class SourceFile:
 
 	## Analogous to SourceFile.matchUnscoped, but performs a full match.
 	def fullmatchUnscoped(self, pat, start=0, end=None, *, excludeClips=True):
+		if start is None: start = 0
 		if type(pat) is not regex.Pattern:
 			pat = regex.compile(pat)
 		if start is not None: start = self.intPos(start)
@@ -524,12 +535,13 @@ class SourceFile:
 
 	## Replaces matches in the source.
 	#
-	# @param tmatches  List of SourceMatche-s or pairs (SourceMatch, tag). A tag can be anything.
-	# @param repl      Replacement - a string or a function accepting either a SourceMatche or (SourceMatch, tag),
-	#                  depending on the type of tmatches, and returning a string. The string cannot contain sequences
-	#                  \<new line>.
-	# @param sorted    If True, tmatches are assumed to be sorted with respect to the position. Otherwise tmatches are
-	#                  copied and sorted.
+	# @param tmatches  List of @ref SourceMatche or pairs `(` @ref SourceMatch `, tag)` -- `tag` can be anything.
+	#                  The matches cannot overlap -- the result unspecifed.
+	# @param repl      Replacement - a string or a function accepting either a @ref SourceMatche or 
+	#                  `(` @ref SourceMatch `, tag)`, depending on the type of tmatches, and returning a string. The 
+	#                  string cannot contain sequences `\<new line>`.
+	# @param sorted    If `True`, tmatches are assumed to be sorted with respect to the position. Otherwise tmatches 
+	#                  are copied and sorted.
 	def replaceMatches(self, tmatches, repl, *, sorted=False):
 		if not tmatches:
 			return
@@ -615,35 +627,36 @@ class SourceFile:
 
 	## Abbrevation calling SourceFile.tryScopeToClassStructBody with kind="class".
 	def tryScopeToClassBody(self, name, scopes=None, *, skipBlocks=True):
-		return self.tryScopeToClassStructBody("class", name, scopes, skipBlocks=skipBlocks)
+		return self.tryScopeToClassBody("class", name, scopes, skipBlocks=skipBlocks)
 
 
 	## Abbrevation calling SourceFile.tryScopeToClassStructBody with kind="struct".
 	def tryScopeToStructBody(self, name, scopes=None, *, skipBlocks=True):
-		return self.tryScopeToClassStructBody("struct", name, scopes, skipBlocks=skipBlocks)
+		return self.tryScopeToClassBody("struct", name, scopes, skipBlocks=skipBlocks)
 
 	
 	## Tries to set the search scope to the body of a class, a struct or a collection of either.
 	#
 	# If the method succeed, the tags of the new scopes are tuples (kind, name) or (kind, name, tag), where kind 
-	# is either "class" or "struct", name is the name and tag is the tag of the scope that was searched.
+	# is either "class", "struct" or "unit", name is the name and tag is the tag of the scope that was searched.
 	#
-	# @param kind    Either "class" or "struct", or "*" - which means any.
-	# @param name    Can be a string or a regular expression.
+	# @param kind    Either "class", "struct" or "union", or any combination of these separated with `|`, or 
+	#                `"*"` (any).
+	# @param name    String or regular expression.
 	# @param scopes  If present, the search is performed in the given <scope> collection, where <scope> is a tuple
     #                (begin, end) or (begin, end, tag), begin, end are positions in the code and tag is anything.
 	# @param skipBlocks  If True, excludes blocks (any { ... }) that start in the examined scopes from the search.
 	# @param scopeTag    If True, the new scopes contain the tag part.
 	# @return  True if the scopes were set, otherwise False.
-	def tryScopeToClassStructBody(self, kind, name, scopes=None, *, skipBlocks=True, scopeTag=False):
-		assert kind in ["class", "struct", "*"]
-		if kind == "*": kind = "class|struct"
+	def tryScopeToClassBody(self, kind, name, scopes=None, *, skipBlocks=True, scopeTag=False):
+		assert kind == "*" or not [True for k in kind.split("|") if k not in ["class", "struct", "union"]]
+		if kind == "*": kind = "class|struct|union"
 
 		if scopes:
 			oldScopes = self.__scopes
 			self.setScopes(scopes)
 
-		prefixRe = f"\\b{kind}\\s+{name}\\b"
+		prefixRe = f"\\b(?:{kind})\\s+{name}\\b"
 
 		if skipBlocks:
 			prefixPat = SourceFile.makeSkipBlocksPat(prefixRe)
@@ -660,11 +673,14 @@ class SourceFile:
 			if begin is not None and pos < begin:
 				pos = begin
 			while (end is None or pos < end) and (imres := find(prefixPat, pos, end)):
-				match Syntax.parseClassStructPrefix(kind, name, self.__code, imres.start()):
-					case (foundkind, foundname, pos): pass
+				match Syntax.parseClassPrefix(self.__code, imres.start()):
+					case (foundkind, foundname, _, _, pos):
+						if self.__code[pos] != "{": continue
 					case None:
 						pos = imres.end()
 						continue
+					case _:
+						assert False
 				blockEnd = self.__blockEnds[pos]
 				foundScopes.append((pos + 1, blockEnd, (foundkind, foundname) + ((tag,) if scopeTag else ()) ))
 				pos = blockEnd + 1
@@ -810,7 +826,7 @@ class SourceFile:
 		self.__lineEnds = []
 
 		pos = 0
-		while (res := Syntax.nextClipAndLineEnds(self.__code, pos)) and (clip := res[0]):
+		while (res := self.__nextClipAndLineEnds(pos)) and (clip := res[0]):
 			pos = clip[1] + (2 if clip[2] == 'C' else 1)
 			self.__clipRanges.append(clip)
 			self.__lineEnds.extend(res[1])
@@ -879,3 +895,31 @@ class SourceFile:
 
 		self.__lineJoins = list(reversed(newLineJoins))
 		self.__recalc_lineJoinsOrg()
+
+
+	def __nextClipAndLineEnds(self, start):
+		lineEnds = []
+		while (mres := _clipBeginPat.search(self.__code, start)) and mres.group() == "\r\n":
+			lineEnds.append(mres.end())
+			start = mres.end()
+
+		if mres:
+			match mres.group():
+				case "'": 
+					return ((mres.start() + 1, _endCharPat.search(self.__code, mres.end()).start(), 'c'), lineEnds)
+				case '"':
+					return ((mres.start() + 1, _endStrPat.search(self.__code, mres.end()).start(), 's'), lineEnds)
+				case '//':
+					mres2 = _endComment1Pat.search(self.__code, mres.end())
+					return ((mres.end(), mres2.start(), 'c'), lineEnds + [mres2.end()])
+				case '/*':
+					start = mres.end()
+					while (mres2 := _endCommentNOrNlPat.search(self.__code, start)) and \
+							mres2.group() == "\r\n":
+						lineEnds.append(mres2.end())
+						start = mres2.end()
+					return ((mres.end(), mres2.start(), 'C'), lineEnds)
+				case _:
+					assert False, mres
+
+		return (None, lineEnds)

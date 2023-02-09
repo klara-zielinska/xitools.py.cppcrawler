@@ -89,9 +89,9 @@ class CppCrawler:
     # @param prots       Collection of method/function prototypes in the normal form (cf. Syntax module).
     # @param sources     Sources to search. A glob file path (e.g., "*.h"), a SourceFile, or a list of either.
     # @param returnType  Type of the returned value:
-    #  's' - SourceMatchDict with prototypes being tags,
-    #  'c' - dictionary { 'class name' : list[( 'prototype', (SourceFile, SourceMatch)|None )] }, 
-    #  'l' - list[ ( 'prototype', (SourceFile, SourceMatch)|None ) ].
+    # * 's' - SourceMatchDict with prototypes being tags,
+    # * 'c' - dictionary { 'class name' : list[( 'prototype', (SourceFile, SourceMatch)|None )] }, 
+    # * 'l' - list[ ( 'prototype', (SourceFile, SourceMatch)|None ) ].
     # @return  Collection of matches. Matches align to found prototypes - e.g., fooBar( int i ).
     def findMethDeclarations(self, prots, sources, *, returnType='s'):
         protDict = CppCrawler.__makeMethProtsDict(prots)
@@ -105,7 +105,7 @@ class CppCrawler:
             for cname in protDict:
                 if not cname: 
                     src.resetScopes()
-                elif not src.tryScopeToClassBody(cname, (None, None)):
+                elif not src.tryScopeToClassBody("*", cname, (None, None)):
                     continue
 
                 for protRec in protDict[cname]:
@@ -120,9 +120,9 @@ class CppCrawler:
                 for recs in protDict.values():
                     for (prot, _, res) in recs:
                         if res:
-                            d.setdefault(res[0], []).append((res[1], prot))
+                            d.insert(res[0], (res[1], prot))
                         else:
-                            d.setdefault(None, []).append((None, prot))
+                            d.insert(None, (None, prot))
                 return d
 
             case 'c':
@@ -141,7 +141,10 @@ class CppCrawler:
     def __makeMethProtsDict(prots):
         protDict = {}
         for prot in prots:
-            (cname, prot0) = Syntax.extractProtContainerName(prot)
+
+            (prot0, idpref) = Syntax.extractMethBaseProt(prot)
+            assert len(idpref) <= 2, "Too many name specifiers"
+            cname = idpref[0] if idpref else None
             protPat = regex.compile(Syntax.makeMethProtRe(prot0))
             protDict.setdefault(cname, []).append([prot, protPat, None])
         return protDict
@@ -243,7 +246,7 @@ class CppCrawler:
             missings = []
             for i, tpat in enumerate(tpats):
                 if not patsFound[i]: missings.append(tagMres(None, tpat, None))
-            if missings: d[None] = missings
+            if missings: d.missing[None] = missings
 
         return d
     
@@ -267,16 +270,16 @@ class CppCrawler:
     def __find_makeSourceScopeDict(self, sources):
         if type(sources) is SourceScopeDict:
             srcScopeDict = sources
-        elif type(sources) is dict:
-            srcScopeDict = SourceScopeDict({ (s := src if type(src) is SourceFile else self.loadSourceFile(src)) : 
+        elif isinstance(sources, dict):
+            srcScopeDict = { (s := src if type(src) is SourceFile else self.loadSourceFile(src)) : 
                              [ (s.intScope(scope), scope) for scope in scopes ]
-                             for src, scopes in sources.items() })
+                             for src, scopes in sources.items() }
         else:
             if type(sources) is str:
                 sources = self.listSourceFiles(sources)
-            srcScopeDict = SourceScopeDict({ (src if type(src) is SourceFile else self.loadSourceFile(src)) : 
+            srcScopeDict = { (src if type(src) is SourceFile else self.loadSourceFile(src)) : 
                              [ ((None, None), (None, None)) ]
-                             for src in sources })
+                             for src in sources }
         return srcScopeDict
 
     
