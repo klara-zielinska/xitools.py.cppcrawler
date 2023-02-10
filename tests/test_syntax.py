@@ -135,46 +135,71 @@ class SyntaxTests(TestCase):
 
     def test_parseMethPrototype(self):
         inputOutput = [ 
-            (s:="foo()", ("foo()", [], len(s))),
-            (s:="foo(unsigned    char  )", ("foo(unsigned`char)", [None], len(s))),
-            (s:="foo(int i)", ("foo(int)", ["i"], len(s))),
-            (s:="foo(  int i  )   const", ("foo(int) const", ["i"], len(s))),
-            (s:="foo(  int i, char* str  )   const", ("foo(int, char*) const", ["i", "str"], len(s))),
-            (s:="ClassA::foo(  int i, char * const str  )", ("ClassA::foo(int, char*const)", ["i", "str"], len(s))),
-            (s:="ClassA::foo(int &i, long  long  )", ("ClassA::foo(int&, long`long)", ["i", None], len(s))),
-            (s:="ClassA:: ~ ClassA(long int )", ("ClassA::~ClassA(long`int)", [None], len(s))),
+            (s:="foo();", ("foo()", [], len(s) - 1)),
+            (s:="foo(unsigned    char  );", ("foo(unsigned`char)", [None], len(s) - 1)),
+            (s:="foo(int i);", ("foo(int)", ["i"], len(s) - 1)),
+            (s:="foo(  int i  )   const;", ("foo(int) const", ["i"], len(s) - 1)),
+            (s:="foo(  int i, char* str  )   const;", ("foo(int, char*) const", ["i", "str"], len(s) - 1)),
+            (s:="ClassA::foo(  int i, char * const str  );", ("ClassA::foo(int, char*const)", ["i", "str"], len(s) - 1)),
+            (s:="ClassA::foo(int &i, long  long  );", ("ClassA::foo(int&, long`long)", ["i", None], len(s) - 1)),
+            (s:="ClassA:: ~ ClassA(long int );", ("ClassA::~ClassA(long`int)", [None], len(s) - 1)),
 
-            (s:="ClassA  ::  f(std::vector< int, std::Alloc >, int i, char * const str  )", 
-                ("ClassA::f(std::vector<int,`std::Alloc>, int, char*const)", [None, "i", "str"], len(s))),
-            (s:="ClassA  ::  f(std::vector< int, std::Alloc > vec, int i, char * const str  )", 
-                ("ClassA::f(std::vector<int,`std::Alloc>, int, char*const)", ["vec", "i", "str"], len(s))),
+            (s:="ClassA  ::  f(std::vector< int, std::Alloc >, int i, char * const str  );", 
+                ("ClassA::f(std::vector<int,`std::Alloc>, int, char*const)", [None, "i", "str"], len(s) - 1)),
+            (s:="ClassA  ::  f(std::vector< int, std::Alloc > vec, int i, char * const str  );", 
+                ("ClassA::f(std::vector<int,`std::Alloc>, int, char*const)", ["vec", "i", "str"], len(s) - 1)),
                 
-            (s:="CvCity::getProductionPerTurn(ProductionCalc::flags flags = ProductionCalc::Yield) const",
-                ("CvCity::getProductionPerTurn(ProductionCalc::flags) const", ["flags"], len(s))),
+            (s:="CvCity::getProductionPerTurn(ProductionCalc::flags flags = ProductionCalc::Yield) const;",
+                ("CvCity::getProductionPerTurn(ProductionCalc::flags) const", ["flags"], len(s) - 1)),
                 
-            (s:="CvCity::getProductionPerTurn(ProductionCalc::flags flags = ProductionCalc::Yield, int i) const",
-                ("CvCity::getProductionPerTurn(ProductionCalc::flags, int) const", ["flags", "i"], len(s))),
+            (s:="CvCity::getProductionPerTurn(ProductionCalc::flags flags = ProductionCalc::Yield, int i) const;",
+                ("CvCity::getProductionPerTurn(ProductionCalc::flags, int) const", ["flags", "i"], len(s) - 1)),
 
-            (s:="foo()  {}", ("foo()", [], 5)),
-            (s:="foo() const {}", ("foo() const", [], s.index("{") - 1)),
+            (s:="foo()  {}", ("foo()", [], 7)),
+            (s:="foo() const {}", ("foo() const", [], s.index("{"))),
 
-            (s:="operator+(const A &x, const A & y)", ("operator+(const`A&, const`A&)", ["x", "y"], len(s))),
-            (s:="A<unsigned int>::operator - (A<unsigned int> const &x)", 
-                ("A<unsigned`int>::operator-(A<unsigned`int>const&)", ["x"], len(s))),
-            (s:="operator( )(long long int)", ("operator()(long`long`int)", [None], len(s))),
-            (s:="operator [\t](long long int)", ("operator[](long`long`int)", [None], len(s))),
-            (s:="operator int() const", 
-                ("operator`int() const", [], len(s))),
-            (s:="operator std :: vector <float> *() const", 
-                ("operator`std::vector<float>*() const", [], len(s))),
+            (s:="operator+(const A &x, const A & y);", ("operator+(const`A&, const`A&)", ["x", "y"], len(s) - 1)),
+            (s:="A<unsigned int>::operator - (A<unsigned int> const &x);", 
+                ("A<unsigned`int>::operator-(A<unsigned`int>const&)", ["x"], len(s) - 1)),
+            (s:="operator( )(long long int);", ("operator()(long`long`int)", [None], len(s) - 1)),
+            (s:="operator [\t](long long int);", ("operator[](long`long`int)", [None], len(s) - 1)),
+            (s:="operator int() const;", 
+                ("operator`int() const", [], len(s) - 1)),
+            (s:="operator std :: vector <float> *() const;", 
+                ("operator`std::vector<float>*() const", [], len(s) - 1)),
 
 
-            ("AI_DEFAULT_STRATEGY             (1 << 0)", None),
-            ("foreach(GameObjectTypes eType, bst::function<void (const CvGameObject*)> func)", None)
+            ("AI_DEFAULT_STRATEGY             (1 << 0);", None),
+            ("foreach(GameObjectTypes eType, bst::function<void (const CvGameObject*)> func);", None),
+            ("m_idx(-1) {}", None)
             ]
 
         for input, expRes in inputOutput:
             self.assertEqual(Syntax.parseMethPrototype(input), expRes, f"Input: {input}")
+            
+
+        inputOutput = [ 
+            (s:="; int foo();", 6, ("foo()", [], len(s) - 1)),
+            (s:="= foo();",  2, None),
+            (s:=": foo() {", 2, None),
+            (s:=", foo() {", 2, None),
+            ]
+
+        for input, start, expRes in inputOutput:
+            self.assertEqual(Syntax.parseMethPrototype(input, start), expRes, f"Input: {input}")
+
+        code = """
+int x =
+#else
+int
+#endif
+foo();"""
+        self.assertRaises(ValueError, Syntax.parseMethPrototype, code, code.index("foo"), prefixCheck=True)
+        self.assertEqual(Syntax.parseMethPrototype(code, code.index("foo"), prefixCheck=False),
+                         ("foo()", [], len(code) - 1))
+        self.assertEqual(Syntax.parseMethPrototype(s := "copy_iterator(OtherItr_ begin, OtherItr_ end) : m_idx(-1) {", 
+                                                   s.index("m_"), prefixCheck=False), None)
+
 
 
     def test_parseClassPrefix(self):

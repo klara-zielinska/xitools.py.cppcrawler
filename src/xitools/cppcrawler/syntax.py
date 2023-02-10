@@ -41,15 +41,16 @@ _methProt2Pat = regex.compile(r"(?:(?P<seg>)::)?(?P<seg>[^:]+)(?:::(?P<seg>[^:]+
 _methDec0Pat = regex.compile(r"(?<!(?:,)\s*)(?:\b(?P<cont>\w+)\s*::\s*)?(?P<dest>~\s*)?"
                              r"\b(?:operator\b\s*(?P<op>"f"(?:{_opSym0Re})?)"
                              r"|(?P<name>\w+)\s*(?=(?P<x>\(|<)))")
-_methDec00Pat = regex.compile(f"(?<!(?:,){___})")
+_methDec00Pat = regex.compile(f"(?<=(?P<del>=|#endif)(?:{__}|#(?!endif).*\n|[^;{{}}=]*+)"
+                                  f"|(?<=[:,]{___}))")
 _methDec01Pat = regex.compile(f"(?P<nssep>::{___})?"
-                              f"(?:\\boperator\\b{___}(?P<op>{_opSym0Re})?{___}|"
-                              f"(?P<dest>~{___})?\\b(?P<id>\\w+){___})")
+                              f"(?:\\boperator\\b{___}(?P<op>{_opSym0Re})?{___}"
+                                  f"|(?P<dest>~{___})?\\b(?P<id>\\w+){___})")
 _methDec0aPat = regex.compile(f"\\({___}")
 _methDec1Pat = regex.compile(f"{___}"r"(?P<name>\w*)"f"{___}")
 _methDec1aPat = regex.compile(f"{___}(?P<opt>=){___}")
 _methDec2Pat = regex.compile(f"{___},?{___}")
-_methDec3Pat = regex.compile(f"{___}const")
+_methDec3Pat = regex.compile(f"{___}(?P<const>const)?{___}(?=[;{{])")
 _tpOps0Pat = regex.compile(r"\s*((?:[\*&]|const\b|typename\b|\s+)*)")
 _tpOps1Pat = regex.compile(r"(?:[\*&]|const\b|\s+)*(?<!\s)")
 _tpSpaceRepPat = regex.compile(r"(\b\s+\b)|\s+")
@@ -68,7 +69,7 @@ _expr0Pat = regex.compile(r"\s*+[^\(\)\[\],]+(?P<popen>\(|\[)?(?<!\s)")
 _expr1Pat = regex.compile(r"\s*,?\s*")
 _expr2Pat = regex.compile(r"[)\]]")
 _classHead0Pat = regex.compile(f"\\b(?P<kind>class|struct|union){___}(?P<name>\\w+){___}")
-_classHead1Pat = regex.compile(f"(?P<mod>final)?{___}"r"(?::(?!:)(?:"f"{__}"r"|[^;{])*+)?(?=;|\{)")
+_classHead1Pat = regex.compile(f"(?P<mod>final)?{___}"r"(?::(?!:)(?:"f"{__}"r"|[^;{])*+)?(?=[;{])")
 _tpProtSymbPat = regex.compile(r"::|[<>*&`%]")
 
 
@@ -403,20 +404,24 @@ class Syntax:
     
     ## Parses a method prototype and returns it in the normal form.
     #
+    # Parsing ends on `;` or `{`.
+    #
     # @param code   The code.
     # @param start  Starting position.
-    # @return       Pair `(prot, end)` or `None`, where `prot` is the parsed prototype in the normal 
-    #               form (see Syntax.makeMethProtRe) and `end` is the end position of the parsed code piece.
+    # @return       Pair `(prot, nargs, end)` or `None`, where `prot` is the parsed prototype in the normal 
+    #               form (see Syntax.makeMethProtRe), `nargs` is the argument name list and `end` is the end position 
+    #               of the parsed code piece.
+    # @throws ValueError  Thrown if `prefixCheck=True` and parsed code is directly preceded by `#endif`. This is
+    #                     because there is currently no support for verifying code in if-branches.
     #
-    # @remark  Currently no support for function types, volatail modifiers, possibly more (the autor hasn't checked
+    # @remark  Currently no support for function types, volatile modifiers, possibly more (the author hasn't checked
     #          the whole C++ syntax).
-    #
-    # @par  Example
-    # Input: `"std::vector <std::pair<unsigned int , const char *>>"`   
-    # Output: ``"std::vector<std::pair<unsigned`int,`const`char*>`>"``
-    def parseMethPrototype(code, start=0):
-        mres = _methDec00Pat.match(code, start)
-        if not mres: return None
+    def parseMethPrototype(code, start=0, *, prefixCheck=True):
+        if prefixCheck and (mres := _methDec00Pat.match(code, start)):
+            if mres.group("del") != "#endif":
+                return None
+            else:
+                raise ValueError("Preceded by #endif")
 
         prot = ""
         pos = start
@@ -454,9 +459,11 @@ class Syntax:
             case (targs, nargs, pos): prot += f"({', '.join(targs)})"
             case None:                return None
             
-        if mres := _methDec3Pat.match(code, pos):
+        mres = _methDec3Pat.match(code, pos)
+        if not mres: return None
+        pos = mres.end()
+        if mres.group("const"):
             prot += " const"
-            pos = mres.end()
 
         return (prot, nargs, pos)
 

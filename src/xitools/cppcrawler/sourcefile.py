@@ -669,7 +669,7 @@ class SourceFile:
 
 		pos = 0
 		for scope in self.__scopes:
-			(begin, end, tag) = scope
+			(begin, end, stag) = scope
 			if begin is not None and pos < begin:
 				pos = begin
 			while (end is None or pos < end) and (imres := find(prefixPat, pos, end)):
@@ -682,7 +682,7 @@ class SourceFile:
 					case _:
 						assert False
 				blockEnd = self.__blockEnds[pos]
-				foundScopes.append((pos + 1, blockEnd, (foundkind, foundname) + ((tag,) if scopeTag else ()) ))
+				foundScopes.append((pos + 1, blockEnd, (foundkind, foundname) + ((stag,) if scopeTag else ()) ))
 				pos = blockEnd + 1
 
 		if foundScopes:
