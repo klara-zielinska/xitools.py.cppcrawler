@@ -133,12 +133,15 @@ class SourceMatchDict(dict):
                     res[src] = matches
             return res
 
-        else:            
+        else:       
+            toDel = []
             for src in self:
                 if matches := [tm for tm in self[src] if predicate(src, tm)]:
                     self[src] = matches
                 else:
-                    del self[src]
+                    toDel.append(src)
+            for src in toDel:
+                del self[src]
             return self
 
         

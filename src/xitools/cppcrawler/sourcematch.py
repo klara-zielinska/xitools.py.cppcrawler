@@ -21,7 +21,7 @@ class SourceMatch(ABC):
 
     ## Order based on the positions of entire matches (group 0). Comparing with None is always False.
     def __lt__(self, other):
-        if self is None or other is None: 
+        if other is None: 
             return False
         else:
             return (self.intStart(), self.intEnd()) < (other.intStart(), other.intEnd())
@@ -29,8 +29,8 @@ class SourceMatch(ABC):
 
     ## The positional equality of entire matches (group 0).
     def __eq__(self, other):
-        if self is None or other is None: 
-            return self is other
+        if other is None: 
+            return False
         else:
             return (self.intStart(), self.intEnd()) == (other.intStart(), other.intEnd())
         
@@ -209,8 +209,8 @@ class SourceRangeMatch(SourceMatch):
             for (start, end) in ranges:
                 assert 0 <= start and start <= end
                 self.__ranges.append((start, end) if int else (src.intPos(start), src.intPos(end)))
-        else:
-            raise TypeError
+        else: # pragma: no cover
+            assert False, "Incorrect type of the ranges"
 
         SourceMatch.__init__(self, src, copySource)
 

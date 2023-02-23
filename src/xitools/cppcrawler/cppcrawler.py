@@ -38,7 +38,7 @@ class CppCrawler:
 
     ## The backup directory.
     def backupDir(self):
-        self.__backupDir
+        return self.__backupDir
 
 
     ## List of the paths to all backup bucket directories.
@@ -133,7 +133,7 @@ class CppCrawler:
             case 'l':
                 return list(map(lambda rec: (rec[0], rec[2]), flatten(protDict.values())))
 
-            case _:
+            case _: # pragma: no cover
                 assert False, "Invalid returnType"
 
     
@@ -268,9 +268,7 @@ class CppCrawler:
 
 
     def __find_makeSourceScopeDict(self, sources):
-        if type(sources) is SourceScopeDict:
-            srcScopeDict = sources
-        elif isinstance(sources, dict):
+        if isinstance(sources, dict):
             srcScopeDict = { (s := src if type(src) is SourceFile else self.loadSourceFile(src)) : 
                              [ (s.intScope(scope), scope) for scope in scopes ]
                              for src, scopes in sources.items() }
@@ -354,8 +352,9 @@ class CppCrawler:
     def saveSources(self, sources, encoding=None):
         backupRoot = self._makeNextBackupBucket()
         for src in sources:
-            backupDir = os.path.normpath(os.path.dirname(os.path.relpath(src.filepath(), self.__sourceDir)))
-            assert not backupDir.startswith(".."), "Source files outside the source directory are unsupported"
+            relpath = os.path.relpath(src.filepath(), self.__sourceDir)
+            backupDir = os.path.normpath(os.path.dirname(relpath))
+            assert not backupDir.startswith(".."), f"Source outside the source directory are unsupported: {relpath}"
             src.save(encoding, backupDir=os.path.join(backupRoot, backupDir), force=True)
 
     

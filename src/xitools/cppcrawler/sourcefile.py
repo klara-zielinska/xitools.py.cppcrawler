@@ -1,5 +1,6 @@
 from .utils import *
 from .syntax import *
+from .syntax import ___
 from . import sourcematch as sm
 import bisect
 import shutil
@@ -7,6 +8,7 @@ import errno
 import os
 
 
+_openBlockPat   = regex.compile("{")
 _clipBeginPat   = regex.compile(r"['\"]|//|/\*|\r\n")
 _endCharPat     = regex.compile(r"'|\r\n|$")
 _endStrPat      = regex.compile(r'"|\r\n|$')
@@ -14,16 +16,15 @@ _endComment1Pat = regex.compile(r'\r\n|$')
 _endCommentNOrNlPat = regex.compile(r'\*/|\r\n|$')
 
 _blockStartPat = regex.compile(
-	r"(?:(?P<ts>\s))*"
-	r"(?<=\r\n(?P<ind>[ \t]+))?(?P<ins>)(?=.*(?P<preproc>#(?:define|undef|if|ifdef|ifndef|else|endif|pragma)\b))?"
-		r"[^\s].*"
-	r"(?:\r\n(?P<ind>[ \t]*))?")
-
-_blockStartSkipComPat = regex.compile(
-	r"(?:(?P<ts>\s)|"f"{Syntax.commentRe})*"
-	r"(?<=\r\n(?P<ind>[ \t]+))?(?P<ins>)(?=.*(?P<preproc>#(?:define|undef|if|ifdef|ifndef|else|endif|pragma)\b))?"
-		r"[^\s].*"
-	r"(?:\r\n(?P<ind>[ \t]*))?")
+		r"\s*"
+		r"\r\n(?P<ins>)[ \t]*#.*"
+		r"\s*\r\n(?P<ind>[ \t]*)(?P<del>\S)"
+	r"|"
+		r"\s*"
+		r"\r\n(?P<ins>)(?P<ind>[ \t]*)(?P<del>\S)"
+	r"|"
+		r"(?P<ind1>[ \t]*)(?P<ins0>)(?P<del1>\S).*"
+		r"(?:\s*(?<=\r\n)(?P<ind2>[ \t]*)\S)?")
 
 
 
@@ -97,12 +98,12 @@ class SourceFile:
 	
 	## Given an internal scope, possibly tagged, returns the scope with orginal positions.
 	def orgScope(self, scope):
-		return tuple([self.orgPos(scope[0]), self.orgPos(scope[1])] + ([scope[2]] if len(scope) >= 3 else []))
+		return (self.orgPos(scope[0]), self.orgPos(scope[1])) + (() if len(scope) == 2 else (scope[2],))
 
 
 	## Given a scope with original positions, possibly tagged, returns the internal scope.
 	def intScope(self, scope):
-		return tuple([self.intPos(scope[0]), self.intPos(scope[1])] + ([scope[2]] if len(scope) >= 3 else []))
+		return (self.intPos(scope[0]), self.intPos(scope[1])) + (() if len(scope) == 2 else (scope[2],))
 	
 
 	## Given a position returns the pair: internal line number, character position in the line.
@@ -135,7 +136,9 @@ class SourceFile:
 		return self.__code[start:end]
 
 
-	## Returns a piece of the orginal code.
+	## Returns a piece of the original code. (Low performance)
+	#
+	# The method is inefficient if file contains \<new line> sequences. Use SourceFile.intCode instead.
 	def orgCode(self, start=None, end=None, *, int=False):
 		if len(self.__lineJoins) == 0:
 			return self.__code[start:end]
@@ -156,17 +159,17 @@ class SourceFile:
 		return "\\\r\n".join(chunks)
 
 
-	## Abbrevation that calls SourceFile.intLocation and returns the first element.
+	## Abbreviation that calls SourceFile.intLocation and returns the first element.
 	def intLineNo(self, pos, *, int=False):
 		return self.intLocation(pos, int=int)[0]
 
 
-	## Abbrevation that calls SourceFile.orgLocation and returns the first element.
+	## Abbreviation that calls SourceFile.orgLocation and returns the first element.
 	def orgLineNo(self, pos, *, int=False):
 		return self.orgLocation(pos, int=int)[0]
 
 
-	## Returns the block end position - any { ... }.
+	## Returns the block end position (any { ... }).
 	def blockEnd(self, begin, *, int=False):
 		if int:
 			return self.__blockEnds[begin]
@@ -238,10 +241,12 @@ class SourceFile:
 				case None:              return None
 
 
-	## Returns the start of the line. 
+	## Given a position returns the start position of the line.
+	#
+	# The lines are evaluated after \<new line> removal (e.g., for "int\\\r\nx;" and pos=6 the result is 0)
 	def lineStart(self, pos):
 		ln = self.intLineNo(self.intPos(pos))
-		return self.orgPos(0 if ln == 0 else self.__lineEnds[ln - 1])
+		return self.orgPos(0 if ln == 1 else self.__lineEnds[ln - 2])
 
 
 	## Returns a shallow copy.
@@ -298,9 +303,9 @@ class SourceFile:
 			self.__filepath = filepath
 
 
-	## Finds the begining of the first block behind the given.
+	## Finds the beginning of the first block behind the given.
 	def findFirstBlock(self, pos):
-		if mres := self._findPatUnscoped(regex.compile("{"), self.intPos(pos)):
+		if mres := self._findPatUnscoped(_openBlockPat, self.intPos(pos)):
 			return (self.orgPos(mres.start()), self.orgPos(self.__blockEnds[mres.start()] + 1))
 		else:
 			return None
@@ -311,7 +316,7 @@ class SourceFile:
 		return regex.compile(re + r"|(?P<__cppcr_sbo>\{)")
 
 
-	## Checks if a regex.Pattern is properly formad to be used in methods that can skip blocks.
+	## Checks if a regex.Pattern is properly formed to be used in methods that can skip blocks.
 	def checkSkipBlocksPat(pat):
 		return pat.pattern.endswith(r"|(?P<__cppcr_sbo>\{)")
 	
@@ -375,8 +380,7 @@ class SourceFile:
 						begin = self._blockExtension(begin, mres.end())
 						yield wrapRes(mres, stag)
 
-
-	# start : int
+						
 	def _matchPatUnscoped(self, pat, start, end=None, excludeClips=True):
 		if excludeClips and self._getClipRange(start):
 			return None
@@ -384,8 +388,7 @@ class SourceFile:
 			return pat.match(self.__code, start, end)
 
 		
-	# start : int
-	def _fullmatchPatUnscoped(self, pat, start, end=None, excludeClips=True):
+	def _fullmatchPatUnscoped(self, pat, start, end, excludeClips=True):
 		if excludeClips and self._getClipRange(start):
 			return None
 		else:
@@ -478,7 +481,7 @@ class SourceFile:
 	## Matches the source against a regular expression ignoring the search scopes.
 	#
 	# The matched range is specified with the start, end parameters. See SourceFile.find for more details.
-	def matchUnscoped(self, pat, start=0, end=None, *, excludeClips=True):
+	def matchUnscoped(self, pat, start, end=None, *, excludeClips=True):
 		if start is None: start = 0
 		if type(pat) is not regex.Pattern:
 			pat = regex.compile(pat)
@@ -489,7 +492,7 @@ class SourceFile:
 	
 
 	## Analogous to SourceFile.matchUnscoped, but performs a full match.
-	def fullmatchUnscoped(self, pat, start=0, end=None, *, excludeClips=True):
+	def fullmatchUnscoped(self, pat, start, end, *, excludeClips=True):
 		if start is None: start = 0
 		if type(pat) is not regex.Pattern:
 			pat = regex.compile(pat)
@@ -572,12 +575,12 @@ class SourceFile:
 		self._recalcCode()
 
 
-	## Abbrevation that calls SourceFile.replaceMatches with a single match.
+	## Abbreviation that calls SourceFile.replaceMatches with a single match.
 	def replaceMatch(self, match, repl):
 		self.replaceMatches([match], repl)
 
 
-	## Abrevation that creates a SourceRangeMatch and calls SourceFile.replaceMatch with it.
+	## Abbreviation that creates a SourceRangeMatch and calls SourceFile.replaceMatch with it.
 	def replaceRange(self, start, end, repl):
 		self.replaceMatch(sm.SourceRangeMatch(self, (start, end)), repl)
 
@@ -599,40 +602,31 @@ class SourceFile:
 			_repl = repl
 			repl = lambda _: _repl
 		shifts = []
+		replaced = 0
 
 		def inRepl(mres):
-			if excludeClips and self._isClipped(mres.start()):
+			nonlocal replaced
+			if excludeClips and self._isClipped(mres.start()) or count != 0 and replaced == count:
 				return mres.group(0)
 			else:
 				repStr = repl(mres)
 				assert "\\\r\n" not in repStr
 				shifts.append( (mres.start(), mres.end(), len(repStr) - len(mres.group(0))) )
+				replaced += 1
 				return repStr
 
-		replaced = 0 
 		for (begin, end, _) in self.__scopes:
-			actCount = 0 if count == 0 else count - replaced
-			(self.__code, foundCount) = pat.subn(inRepl, self.__code, actCount, pos=begin, endpos=end)
-			replaced += foundCount
+			self.__code = pat.sub(inRepl, self.__code, pos=begin, endpos=end)
+			if count != 0 and replaced == count: break
 		self.__shiftAndClearLineJoins(shifts)
 		self._recalcCode()
 
 		return replaced
 
 
-	## Inserts code in the given position - abbrevation of SourceFile.replaceRange applied to pos, pos.
+	## Inserts code in the given position - abbreviation of SourceFile.replaceRange applied to pos, pos.
 	def insert(self, pos, code):
 		self.replaceRange(pos, pos, code)
-
-
-	## Abbrevation calling SourceFile.tryScopeToClassStructBody with kind="class".
-	def tryScopeToClassBody(self, name, scopes=None, *, skipBlocks=True):
-		return self.tryScopeToClassBody("class", name, scopes, skipBlocks=skipBlocks)
-
-
-	## Abbrevation calling SourceFile.tryScopeToClassStructBody with kind="struct".
-	def tryScopeToStructBody(self, name, scopes=None, *, skipBlocks=True):
-		return self.tryScopeToClassBody("struct", name, scopes, skipBlocks=skipBlocks)
 
 	
 	## Tries to set the search scope to the body of a class, a struct or a collection of either.
@@ -679,7 +673,7 @@ class SourceFile:
 					case None:
 						pos = imres.end()
 						continue
-					case _:
+					case _: # pragma: no cover
 						assert False
 				blockEnd = self.__blockEnds[pos]
 				foundScopes.append((pos + 1, blockEnd, (foundkind, foundname) + ((stag,) if scopeTag else ()) ))
@@ -699,29 +693,29 @@ class SourceFile:
 			def tagFunc(mres, scope): return (mres.group("name"), scope[2])
 		else:
 			def tagFunc(mres, scope): return mres.group("name")
-		return self.tryScopeToBlocksByPrefix(Syntax._makeNamespacePrefixRe(f"(?:{name})"), scopes, 
+		return self.tryScopeToBlockByPrefix(f"namespace{___}(?P<name>{name}){___}", scopes, 
 									         tagFunc=tagFunc, skipBlocks=skipBlocks)
 	
 
-	## Tries to set the search scope to the body of blocks preceeded with the given prefix.
+	## Tries to set the search scope to the body of blocks preceded with the given prefix.
 	#
-	# @param prefixRe  Regular expression that specifies the prefix. It has to end with {.
+	# @param prefixRe  Regular expression that specifies the prefix. It has to match all characters before {.
 	# @param scopes    If present, the search is performed in the given <scope> collection, where <scope> is a tuple
     #                  (begin, end) or (begin, end, tag), begin, end are positions in the code and tag is anything.
-	# @param tagFunc   Function that takes a SourceMatch matching the prefix, and a scope, and returns the tag for 
-	#                  the new scope.
+	# @param tagFunc   Function that takes a SourceMatch matching the prefix and a possibly tagged scope where the
+	#                  match occurred, and returns the tag for the new scope.
 	# @param skipBlocks  If True, excludes blocks (any { ... }) that start in the examined scopes from the search.
 	# @return  True if the scopes were set, otherwise False.
-	def tryScopeToBlocksByPrefix(self, prefixRe, scopes=None, *, skipBlocks=True, tagFunc=lambda _, __: None):
+	def tryScopeToBlockByPrefix(self, prefixRe, scopes=None, *, skipBlocks=True, tagFunc=(lambda _, __: None)):
 		if scopes:
 			oldScopes = self.__scopes
 			self.setScopes(scopes)
 
 		if skipBlocks:
-			prefixPat = SourceFile.makeSkipBlocksPat(prefixRe)
+			prefixPat = SourceFile.makeSkipBlocksPat(f"(?:{prefixRe}){{")
 			find = self._findPatUnscoped_SkipBlocks
 		else:
-			prefixPat = regex.compile(prefixRe)
+			prefixPat = regex.compile(f"(?:{prefixRe}){{")
 			find = self._findPatUnscoped
 
 		foundScopes = []
@@ -745,40 +739,48 @@ class SourceFile:
 			return False
 
 
-	## Returns the position for inserting a single line prefix in a block and the spacing that should be added behind.
+	## Returns the position for inserting a single line prefix in a block and the spacing that should be added around.
 	#
-	# @param blockBegin    Valid position of a block begining.
-	# @param skipComments  If True and the block starts with comments, the returned position will be behind them.
-	# @param int  If True, the positions are internal.
-	# @return     Pair (position, suffix), where position is the appointed position and suffix is the spaceing that
-	#             should be added at the end of the inserted line.
-	def posToInsertBlockSPrefix(self, blockBegin, *, skipComments=False, int=False):
-		if not int: blockBegin = self.intPos(blockBegin)
-		assert blockBegin in self.__blockEnds, "No block in the given position"
-		blockEnd   = self.__blockEnds[blockBegin]
-		imres = self._matchPatUnscoped(_blockStartSkipComPat if skipComments else _blockStartPat, 
-								        blockBegin + 1, blockEnd + 1)
-		if imres.group("ind"):
-			suffix = "\r\n" + imres.captures("ind")[0]
-		elif imres.group("preproc"):
-			suffix = "\r\n" + self.defaultIndent
-		elif imres.start("ins") != blockEnd or imres.group("ts"):
-			suffix = " "
+	# @param begin  Valid position of a block beginning.
+	# @param int    If True, the positions are internal.
+	# @return       Triple `(hdspace, position, tlspace)`, where `position` is the position to insert and `hdspace`, 
+	#               `tlspace` are spacing that should be added in front and behind to preserve the indentation.
+	def blockSPrefixInsertPos(self, begin, *, int=False):
+		if not int: begin = self.intPos(begin)
+		assert begin in self.__blockEnds, "No block in the given position"
+		blockEnd   = self.__blockEnds[begin]
+		imres = self._matchPatUnscoped(_blockStartPat, begin + 1, blockEnd + 1)
+
+		if imres.group("ins") is not None:
+			pos = imres.start("ins")
+			if not int: pos = self.orgPos(pos)
+
+			if imres.group("del") == '}':
+				return (imres.group("ind") + self.defaultIndent, pos, "\r\n")
+			else:
+				return (imres.group("ind"), pos, "\r\n")
+
 		else:
-			suffix = ""
-		pos = imres.start("ins")
-		return (pos if int else self.orgPos(pos), suffix)
+			pos = imres.start("ins0")
+			if not int: pos = self.orgPos(pos)
+
+			if imres.group("del1") == '}':
+				return ("", pos, imres.group("ind1"))
+			elif (ind := imres.group("ind2")) is not None:
+				return ("", pos, "\r\n" + ind)
+			else:
+				return ("", pos, " ")
 
 
 	## Inserts a single line prefix in a block.
 	#
-	# The prefix parameter should have no surrounding spaces. See SourceFile.posToInsertBlockSPrefix for the other 
-	# parameters description.
-	def insertBlockSPrefix(self, prefix, blockBegin, *, skipComments=False, int=False):
+	# The prefix should be not indented. The spacing and indentation is evaluated by SourceFile.blockSPrefixInsertPos. 
+	def insertBlockSPrefix(self, prefix, begin, *, int=False):
 		assert "\r\n" not in prefix, "Multiline prefix"
-		if not int: blockBegin = self.intPos(blockBegin)
-		(pos, space) = self.posToInsertBlockSPrefix(blockBegin, skipComments=skipComments, int=True)
-		self.replaceMatch(sm.SourceRangeMatch(self, (pos, pos), int=True, copySource=False), prefix + space)
+		if not int: begin = self.intPos(begin)
+		(prefSpace, pos, sufSpace) = self.blockSPrefixInsertPos(begin, int=True)
+		self.replaceMatch(sm.SourceRangeMatch(self, (pos, pos), int=True, copySource=False), 
+					      prefSpace + prefix + sufSpace)
 
 
 	def _blockExtension(self, ibegin, iend):
@@ -846,10 +848,6 @@ class SourceFile:
 					self.__blockEnds[begins.pop()] = mres.start()
 			pos = mres.end()
 
-		if begins != []:
-			with open("dump.cpp", "w", encoding="utf-8", newline="") as f:
-				f.write(self.__code)
-
 		assert begins == [], f"{self.__filepath}:{self.orgPos(begins[-1])}: {{ has no match."
 
 	# __makeBlockEnds constants:
@@ -906,7 +904,7 @@ class SourceFile:
 		if mres:
 			match mres.group():
 				case "'": 
-					return ((mres.start() + 1, _endCharPat.search(self.__code, mres.end()).start(), 'c'), lineEnds)
+					return ((mres.start() + 1, _endCharPat.search(self.__code, mres.end()).start(), 'h'), lineEnds)
 				case '"':
 					return ((mres.start() + 1, _endStrPat.search(self.__code, mres.end()).start(), 's'), lineEnds)
 				case '//':
@@ -919,7 +917,7 @@ class SourceFile:
 						lineEnds.append(mres2.end())
 						start = mres2.end()
 					return ((mres.end(), mres2.start(), 'C'), lineEnds)
-				case _:
+				case _: # pragma: no cover
 					assert False, mres
 
 		return (None, lineEnds)

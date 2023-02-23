@@ -13,12 +13,6 @@ def _maxCommonPrefix(s1, s2):
 
 
 def maxCommonPrefix(*strings):
-	if len(strings) == 1:
-		try: 
-			iter(strings[0])
-			strings = strings[0]
-		except TypeError: pass
-
 	if not strings: return ""
 	comPrefix = strings[0]
 	for s in strings[1:]:
@@ -49,7 +43,9 @@ def insertRangeSorted(ranges, begin, end):
 		i = bisect_right(ranges, begin, key=lambda s: s[0] or -1)
 		intersectBegin = i
 		if i > 0:
-			if not ranges[i-1][1] or begin <= ranges[i-1][1]:
+			if not ranges[i-1][1] or end is not None and end <= ranges[i-1][1]: 
+				return
+			if begin <= ranges[i-1][1]:
 				begin = ranges[i-1][0]
 				intersectBegin = i - 1
 		if end is None:

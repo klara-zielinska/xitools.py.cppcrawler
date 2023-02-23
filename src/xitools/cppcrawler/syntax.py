@@ -25,8 +25,7 @@ _ptrArgOps0Re = r"(?:\s*[&*]\s*|\s*const\b\s*)+"
 
 
 # Warning: can find an expression or an initializer
-_methFinderRe = (f"(?:{_idRe}{___}::{___})?"
-                 r"(?:~|\boperator\b"f"|{_idRe}(?:{___}<(?:{_clipRe}|[^;{{}}])*+>)?){___}"r"\(")
+_methFinderRe = (r"(?:~|\boperator\b"f"|{_idRe}(?:{___}<(?:{_clipRe}|[^;{{}}])*+>)?){___}\\(")
 
 
 # no function types support
@@ -42,7 +41,7 @@ _methDec0Pat = regex.compile(r"(?<!(?:,)\s*)(?:\b(?P<cont>\w+)\s*::\s*)?(?P<dest
                              r"\b(?:operator\b\s*(?P<op>"f"(?:{_opSym0Re})?)"
                              r"|(?P<name>\w+)\s*(?=(?P<x>\(|<)))")
 _methDec00Pat = regex.compile(f"(?<=(?P<del>=|#endif)(?:{__}|#(?!endif).*\n|[^;{{}}=]*+)"
-                                  f"|(?<=[:,]{___}))")
+                                  f"|(?<=(?:(?<!public|protected|private){___}:|,){___}))")
 _methDec01Pat = regex.compile(f"(?P<nssep>::{___})?"
                               f"(?:\\boperator\\b{___}(?P<op>{_opSym0Re})?{___}"
                                   f"|(?P<dest>~{___})?\\b(?P<id>\\w+){___})")
@@ -50,7 +49,7 @@ _methDec0aPat = regex.compile(f"\\({___}")
 _methDec1Pat = regex.compile(f"{___}"r"(?P<name>\w*)"f"{___}")
 _methDec1aPat = regex.compile(f"{___}(?P<opt>=){___}")
 _methDec2Pat = regex.compile(f"{___},?{___}")
-_methDec3Pat = regex.compile(f"{___}(?P<const>const)?{___}(?=[;{{])")
+_methDec3Pat = regex.compile(f"{___}(?P<const>const)?{___}(?=[;{{:])")
 _tpOps0Pat = regex.compile(r"\s*((?:[\*&]|const\b|typename\b|\s+)*)")
 _tpOps1Pat = regex.compile(r"(?:[\*&]|const\b|\s+)*(?<!\s)")
 _tpSpaceRepPat = regex.compile(r"(\b\s+\b)|\s+")
@@ -103,10 +102,6 @@ class Syntax:
     # @param indent  String to be inserted.
     def addIndent(code, indent):
         return _lineStartPat.sub(lambda mres: mres.group(0) + indent, code)\
-
-
-    def _makeNamespacePrefixRe(name):
-        return f"namespace{___}(?P<name>{name}){___}{{"
 
 
     ## Helper that given a piece of a prototype in the base normal form returns a regular expression that matches it.
@@ -323,11 +318,13 @@ class Syntax:
 
         match Syntax.parseType(code, mres.end()):
             case None:      return None
-            case (tp, pos): pass;
+            case (tp, pos): pass
         args = "<" + tp
         while mres := _tempArgs1Pat.match(code, pos):
             args += ",`"
-            (tp, pos) = Syntax.parseType(code, mres.end())
+            match Syntax.parseType(code, mres.end()):
+                case None:      return None
+                case (tp, pos): pass
             args += tp
 
         mres = _tempArgs2Pat.match(code, pos)
@@ -404,13 +401,14 @@ class Syntax:
     
     ## Parses a method prototype and returns it in the normal form.
     #
-    # Parsing ends on `;` or `{`.
+    # Parsing ends on `;`, `{` or `:`, for easiness of determining if the prototype is a forward declaration or 
+    # a definition (see the return description).
     #
     # @param code   The code.
     # @param start  Starting position.
     # @return       Pair `(prot, nargs, end)` or `None`, where `prot` is the parsed prototype in the normal 
     #               form (see Syntax.makeMethProtRe), `nargs` is the argument name list and `end` is the end position 
-    #               of the parsed code piece.
+    #               of the parsed code piece. The character `code[end]` has to be in `";{:"`. 
     # @throws ValueError  Thrown if `prefixCheck=True` and parsed code is directly preceded by `#endif`. This is
     #                     because there is currently no support for verifying code in if-branches.
     #
@@ -428,7 +426,6 @@ class Syntax:
         
         while mres := _methDec01Pat.match(code, pos):
             if mres.group("nssep"): prot += "::"
-            
             pos = mres.end()
             if mres.group("id"):
                 if mres.group("dest"):
@@ -452,7 +449,6 @@ class Syntax:
                         case (tp, pos): prot += f"operator`{tp}"
                         case None:      return None
                 break
-
         if not prot: return None
 
         match Syntax._parseMethArgs(code, pos):
