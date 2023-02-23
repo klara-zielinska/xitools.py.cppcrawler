@@ -1,9 +1,9 @@
-from xitools.cppcrawler import CppCrawler
-from xitools.cppcrawler import SourceFile
+from xitools.cppcrawler import CppCrawler, SourceFile, SourceScopeDict
 from xitools.cppcrawler import flatten
 from unittest import TestCase
 from tstutils import *
 import filecmp
+from pathlib import Path
 
 
 class CppCrawlerTests(TestCase):
@@ -17,9 +17,20 @@ class CppCrawlerTests(TestCase):
         os.mkdir(tmpFilepath(CppCrawlerTests.testSuit, "test_replaceSourceMatches"))
 
 
+    def test___init__(self):
+        
+        backup = tmpFilepath(CppCrawlerTests.testSuit, "backupDummy")
+        Path(backup).touch()
+        self.assertRaises(AssertionError, CppCrawler, dataFilepath("mash"), backupDir=backup)
+        
+        crawler = CppCrawler(dataFilepath("mash"), backupDir=tmpFilepath(CppCrawlerTests.testSuit, "backup"))
+        self.assertEqual(crawler.sourceDir(), dataFilepath("mash"))
+        self.assertEqual(crawler.backupDir(), tmpFilepath(CppCrawlerTests.testSuit, "backup"))
+
+
     def test_sourceRelPath(self):
 
-        crawler = CppCrawler(dataFilepath("mash", None))
+        crawler = CppCrawler(dataFilepath("mash"))
 
         src = crawler.loadSourceFile("civ/CvUnitSort.h")
 
@@ -53,6 +64,11 @@ class CppCrawlerTests(TestCase):
         res = { cname: (src.filepath(), mres.start()) 
                 for cname, [(_, (src, mres))] 
                 in crawler.findMethDeclarations(prots, "*.h", returnType='c').items() }
+        self.assertEqual(res, { "UnitSortMove": (dataFilepath("civ", "CvUnitSort.h"), 1594) })
+
+        res = { cname: (src.filepath(), mres.start()) 
+                for cname, [(_, (src, mres))] 
+                in crawler.findMethDeclarations(prots, crawler.loadSourceFile("CvUnitSort.h"), returnType='c').items()}
         self.assertEqual(res, { "UnitSortMove": (dataFilepath("civ", "CvUnitSort.h"), 1594) })
         
         
@@ -115,6 +131,11 @@ class CppCrawlerTests(TestCase):
         self.assertEqual([ (src.filepath(), mres.start()) for src, [(mres, _)] in res.items() ], 
                          [ (dataFilepath("mash", "civ/CvUnitSort.cpp"), 1326) ])
         
+        res = crawler.findMethSepDefinitions(prots, crawler.loadSourceFile("civ/CvUnitSort.cpp"))
+        self.assertEqual(res.missing, {})
+        self.assertEqual([ (src.filepath(), mres.start()) for src, [(mres, _)] in res.items() ], 
+                         [ (dataFilepath("mash", "civ/CvUnitSort.cpp"), 1326) ])
+        
 
         prots = ["UnitSortMove::getUnitValue(const`CvPlayer*, const`CvCity*, UnitTypes) const",
                  "foo()",
@@ -131,7 +152,20 @@ class CppCrawlerTests(TestCase):
         crawler = CppCrawler(dataFilepath("civ"))
         
 
+        res = crawler.find([], "*.h", tagResult=False)
+        self.assertEqual(res.missing, {})
+        self.assertEqual(res, {})
+        self.assertEqual(res.isTagged(), False)
+
+
         res = crawler.find([ "algo_functor" ], "*.h")
+        self.assertEqual(res.missing, {})
+        self.assertEqual(testMapSMD(lambda mres: mres.start(), res), 
+                         { dataFilepath("civ", "algorithm2.h") : [1672] })
+
+
+        res = crawler.find("algo_functor", 
+                           SourceScopeDict({ crawler.loadSourceFile("algorithm2.h") : [(None, None)] }))
         self.assertEqual(res.missing, {})
         self.assertEqual(testMapSMD(lambda mres: mres.start(), res), 
                          { dataFilepath("civ", "algorithm2.h") : [1672] })
@@ -253,6 +287,12 @@ class CppCrawlerTests(TestCase):
         crawler = CppCrawler(dataFilepath("civ"))
         
 
+        res = crawler.findAll([], "*.h", tagResult=True)
+        self.assertEqual(res.missing, {})
+        self.assertEqual(res, {})
+        self.assertEqual(res.isTagged(), True)
+        
+
         res = crawler.findAll([ r"default_value(?=[\w<>:]*,)" ], "*.h")
         self.assertEqual(res.missing, {})
         self.assertEqual(testMapSMD(lambda mres: mres.start(), res), 
@@ -261,6 +301,12 @@ class CppCrawlerTests(TestCase):
         
 
         res = crawler.findAll([ r"template<" ], "*.h", skipBlocks=True)
+        self.assertEqual(res.missing, {})
+        self.assertEqual(testMapSMD(lambda mres: mres.start(), res), 
+                         { dataFilepath("civ", "algorithm2.h") : [694, 1212] })
+        
+
+        res = crawler.findAll(r"template<", "*.h", skipBlocks=True)
         self.assertEqual(res.missing, {})
         self.assertEqual(testMapSMD(lambda mres: mres.start(), res), 
                          { dataFilepath("civ", "algorithm2.h") : [694, 1212] })

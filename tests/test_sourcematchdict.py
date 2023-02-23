@@ -39,9 +39,14 @@ class SourceMatchDictTests(TestCase):
         self.assertEqual(smd.isTagged(), False)
 
         smd = SourceMatchDict({ src : [(match1, "a"), (match2, "b")] })
-        self.assertEqual(dict(smd), { src : [(match2, "b"), (match1, "a")] })
+        self.assertEqual(dict(smd),   { src : [(match2, "b"), (match1, "a")] })
         self.assertEqual(smd.isTagged(), True)
-
+        
+        smd.insert(src, (None, "c"))
+        smd = SourceMatchDict(smd)
+        self.assertEqual(dict(smd),   { src : [(match2, "b"), (match1, "a")] })
+        self.assertEqual(smd.missing, { src : [(None, "c")] })
+        self.assertEqual(smd.isTagged(), True)
 
     def test___add__(self):
         
@@ -109,14 +114,18 @@ class SourceMatchDictTests(TestCase):
         match2 = SourceRangeMatch(src1, (0, 7))
         match3 = src2.find("class");
         smd1 = SourceMatchDict({ src1 : [(match2, "tag2"), (match1, "tag1")], src2 : [(match3, "tag3")] })
-
-        smd2 = smd1.filter(lambda src, tmatch: tmatch[1] != "tag2")
-        self.assertEqual(dict(smd2), { src1 : [(match1, "tag1")], src2 : [(match3, "tag3")] })
-        self.assertTrue(smd1 is smd2)
         
-        smd3 = smd1.filter(lambda src, tmatch: tmatch[1] != "tag2", new=True)
+        smd2 = smd1.filter(lambda src, tmatch: tmatch[1] != "tag2", new=True)
+        self.assertEqual(dict(smd2), { src1 : [(match1, "tag1")], src2 : [(match3, "tag3")] })
+        self.assertTrue(smd1 is not smd2)
+
+        smd3 = smd1.filter(lambda src, tmatch: tmatch[1] != "tag2")
         self.assertEqual(dict(smd3), { src1 : [(match1, "tag1")], src2 : [(match3, "tag3")] })
-        self.assertTrue(smd1 is not smd3)
+        self.assertTrue(smd1 is smd3)
+        
+        smd3 = smd1.filter(lambda src, tmatch: tmatch[1] == "tag1")
+        self.assertEqual(dict(smd3), { src1 : [(match1, "tag1")] })
+        self.assertTrue(smd1 is smd3)
 
 
     def test_filterPrecededWith(self):
@@ -127,17 +136,25 @@ class SourceMatchDictTests(TestCase):
         match2 = SourceRangeMatch(src1, (0, 7))
         match3 = SourceRangeMatch(src1, (1587, 1593))
         
+
         smd1 = SourceMatchDict({ src1 : [match1, match2, match3] })
         
-        smd2 = smd1.filterPrecededWith(r"^|\n")
+        smd2 = smd1.filterPrecededWith(r"^|\n", new=True)
         self.assertEqual(dict(smd2), { src1 : [match2, match1] })
-        self.assertTrue(smd1 is smd2)
+        self.assertTrue(smd1 is not smd2)
         
-        smd3 = smd1.filterPrecededWith(r"^|\n", new=True)
+        smd3 = smd1.filterPrecededWith(r"^|\n")
         self.assertEqual(dict(smd3), { src1 : [match2, match1] })
-        self.assertTrue(smd1 is not smd3)
+        self.assertTrue(smd1 is smd3)
+
         
+        smd1 = SourceMatchDict({ src1 : [(match1, "t1"), (match2, "t2"), (match3, "t3")] })
         
+        smd2 = smd1.filterPrecededWith(r"^|\n", new=True)
+        self.assertEqual(dict(smd2), { src1 : [(match2, "t2"), (match1, "t1")] })
+        self.assertTrue(smd1 is not smd2)
+        
+
     def test_filterNotPrecededWith(self):
         
         src1 = SourceFile(dataFilepath("civ", "algorithm2.h"))
@@ -146,14 +163,22 @@ class SourceMatchDictTests(TestCase):
         match2 = SourceRangeMatch(src1, (0, 7))
         match3 = SourceRangeMatch(src1, (1587, 1593))
         
+
         smd1 = SourceMatchDict({ src1 : [match1, match2, match3] })
+        
+        smd3 = smd1.filterNotPrecededWith(r"^|\n", new=True)
+        self.assertEqual(dict(smd3), { src1 : [match3] })
+        self.assertTrue(smd1 is not smd3)
         
         smd2 = smd1.filterNotPrecededWith(r"^|\n")
         self.assertEqual(dict(smd2), { src1 : [match3] })
         self.assertTrue(smd1 is smd2)
         
+
+        smd1 = SourceMatchDict({ src1 : [(match1, "t1"), (match2, "t2"), (match3, "t3")] })
+        
         smd3 = smd1.filterNotPrecededWith(r"^|\n", new=True)
-        self.assertEqual(dict(smd3), { src1 : [match3] })
+        self.assertEqual(dict(smd3), { src1 : [(match3, "t3")] })
         self.assertTrue(smd1 is not smd3)
 
 
@@ -187,6 +212,8 @@ class SourceMatchDictTests(TestCase):
         
         smd = SourceMatchDict({ src1 : [match1], src2 : [match2] })
         self.assertEqual(smd.getSource(dataFilepath("civ", "algorithm2.h")), src1)
+
+        self.assertEqual(smd.getSource(os.path.relpath(dataFilepath("civ")) + "/CvUnitSort.h"), src2)
 
 
     def test_isDictTagged(self):

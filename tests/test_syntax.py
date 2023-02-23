@@ -171,7 +171,8 @@ class SyntaxTests(TestCase):
 
             ("AI_DEFAULT_STRATEGY             (1 << 0);", None),
             ("foreach(GameObjectTypes eType, bst::function<void (const CvGameObject*)> func);", None),
-            ("m_idx(-1) {}", None)
+            ("m_idx(-1) {}",   None),
+            ("operator #op()", None)
             ]
 
         for input, expRes in inputOutput:

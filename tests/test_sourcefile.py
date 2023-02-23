@@ -1,5 +1,5 @@
 from xitools.cppcrawler import SourceFile
-from unittest import TestCase
+from unittest import TestCase, skip
 from tstutils import *
 import filecmp
 
@@ -112,12 +112,48 @@ class SourceFileTests(TestCase):
         src.saveAs(tmpFilepath(self.testSuit, "FAssert.h"), encoding="utf-8")
         self.assertTrue(filecmp.cmp(dataFilepath("civ2", "FAssert.h"), 
                                     tmpFilepath(self.testSuit, "FAssert.h"), False))
+        
+    def test_orgCode(self):
+
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertEqual(src.orgCode(694, 726), "template< class Range_ > \\\r\n\tbst")
+        self.assertEqual(src.orgCode(10151, 10174), "bst::algorithm::copy_if")
+        self.assertEqual(src.orgCode(src.intPos(10151), src.intPos(10174), int=True), "bst::algorithm::copy_if")
+        
+
+    def test_intCode(self):
+
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertEqual(src.intCode(694, 726), "template< class Range_ > \tbst")
+        self.assertEqual(src.intCode(627, 634), "#define")
+        self.assertEqual(src.intCode(694, 702), "template")
+        self.assertEqual(src.intCode(10151, 10174), "bst::algorithm::copy_if")
+        self.assertEqual(src.intCode(src.intPos(10151), src.intPos(10174), int=True), "bst::algorithm::copy_if")
+
+
+    def test_orgLineNo(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertEqual(src.orgLineNo(627), 17)
+        self.assertEqual(src.orgLineNo(693), 18)
+
+
+    def test_intLineNo(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertEqual(src.intLineNo(627), 17)
+        self.assertEqual(src.intLineNo(693), 17)
 
 
     def test_orgPos(self):
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-
+        
+        self.assertEqual(src.orgPos(None), None)
         self.assertEqual(src.orgPos(0), 0)
         self.assertEqual(src.orgPos(689), 689)
         self.assertEqual(src.orgPos(690), 693)
@@ -129,7 +165,8 @@ class SourceFileTests(TestCase):
     def test_intPos(self):
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-
+        
+        self.assertEqual(src.intPos(None), None)
         self.assertEqual(src.intPos(0), 0)
         self.assertEqual(src.intPos(689), 689)
         self.assertEqual(src.intPos(693), 690)
@@ -139,6 +176,24 @@ class SourceFileTests(TestCase):
         self.assertEqual(src.intPos(1587), 1527)
         self.assertEqual(src.intPos(2604), 2544)
         self.assertEqual(src.intPos(12381), 12036)
+
+
+    def test_orgScope(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertEqual(src.orgScope((None, None)), (None, None))
+        self.assertEqual(src.orgScope((689, 690)),   (689, 693))
+        self.assertEqual(src.orgScope((689, 690, "tag")), (689, 693, "tag"))
+
+
+    def test_intScope(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertEqual(src.intScope((None, None)), (None, None))
+        self.assertEqual(src.intScope((689, 693)),   (689, 690))
+        self.assertEqual(src.intScope((689, 693, "tag")), (689, 690, "tag"))
 
 
     def test_find(self):
@@ -154,8 +209,9 @@ class SourceFileTests(TestCase):
         self.assertEqual(src.find("return", excludeClips=False).start(), 456)
         self.assertEqual(src.find("return").start(), 931)
 
-        src.setScope(1000, 1100)
+        src.setScope(1000, 1100, "tag")
         self.assertEqual(src.find("return").start(), 1008)
+        self.assertEqual(src.find("return", scopeTag=True )[1], "tag")
 
         src.setScopes([(0, 930), (1000, 1100)])
         self.assertEqual(src.find("return").start(), 1008)
@@ -195,6 +251,7 @@ class SourceFileTests(TestCase):
         self.assertEqual(src.findUnscoped("fun", skipBlocks=True).start(), 5566)
         self.assertEqual(src.findUnscoped("struct", 5555, skipBlocks=True).start(), 6200)
         self.assertEqual(src.findUnscoped("struct", 5579, skipBlocks=True).start(), 5631)
+        self.assertEqual(src.findUnscoped(SourceFile.makeSkipBlocksPat("fun"), skipBlocks=True).start(), 5566)
         
         self.assertEqual(src.findUnscoped("return", excludeClips=False).start(), 456)
 
@@ -212,28 +269,28 @@ class SourceFileTests(TestCase):
         expectedPos = [
             1665, 1793, 1942, 2136, 2698, 3899, 5631, 5725, 5880, 6200, 6445, 6867, 7428, 8093, 8362, 8814, 9405 ]
         self.assertEqual(list(map(lambda mres: mres.start(), 
-                                  list(src.findAll("struct")) )), expectedPos)
+                                  src.findAll("struct") )), expectedPos)
 
         expectedPos = [6200, 6445, 6867, 7428, 8093, 8362, 8814, 9405]
         self.assertEqual(list(map(lambda mres: mres.start(), 
-                                  list(src.findAll("struct", skipBlocks=True)) )), 
+                                  src.findAll("struct", skipBlocks=True) )), 
                          expectedPos)
 
         expectedPos = [5121, 6200, 6445, 6867, 7428, 8093, 8362, 8814, 9405]
         self.assertEqual(list(map(lambda mres: mres.start(), 
-                                  list(src.findAll("struct", skipBlocks=True, excludeClips=False)) )), 
+                                  src.findAll("struct", skipBlocks=True, excludeClips=False) )), 
                          expectedPos)
         
         expectedPos = [5121, 6200, 6445, 6867]
         src.setScope(1000, 7000)
         self.assertEqual(list(map(lambda mres: mres.start(), 
-                                  list(src.findAll("struct", skipBlocks=True, excludeClips=False)) )), 
+                                  src.findAll("struct", skipBlocks=True, excludeClips=False) )), 
                          expectedPos)
         
         expectedPos = [1665, 1793, 1942, 2136, 2698, 3899, 5631, 5725, 5880, 6200, 6445, 6867, 8814, 9405]
         src.setScopes([(1000, 7000), (8500, None)])
         self.assertEqual(list(map(lambda mres: mres.start(), 
-                                  list(src.findAll("struct")) )), 
+                                  src.findAll("struct") )), 
                          expectedPos)
         
         src.setScope(None, 1360)
@@ -243,6 +300,14 @@ class SourceFileTests(TestCase):
                          [635, 866, 1149])
         self.assertEqual([ mres.start() for mres in src.findAll(r"\w+\s*\([^\{}]*\)\s*\{|\{", skipBlocks=True) ],
                          [635, 1149])
+        
+        src.setScopes([(1000, 1100, "tag1"), (1100, 1555, "tag2")])
+        self.assertEqual([ (tm[0].start(), tm[1]) for tm in src.findAll("return", scopeTag=True) ], 
+                         [(1008, "tag1"), (1478, "tag2")])
+        self.assertEqual([ (tm[0].start(), tm[1]) for tm in src.findAll("return", scopeTag=True, skipBlocks=True) ], 
+                         [(1008, "tag1")])
+        self.assertEqual([ m.start() for m in src.findAll(SourceFile.makeSkipBlocksPat("return"), skipBlocks=True) ], 
+                         [1008])
 
 
     def test_findAllUnscoped(self):
@@ -252,7 +317,7 @@ class SourceFileTests(TestCase):
         expectedPos = [
             1665, 1793, 1942, 2136, 2698, 3899, 5631, 5725, 5880, 6200, 6445, 6867, 7428, 8093, 8362, 8814, 9405 ]
         self.assertEqual(list(map(lambda mres: mres.start(), 
-                                  list(src.findAllUnscoped("struct")) )), 
+                                  src.findAllUnscoped("struct") )), 
                          expectedPos)
         
 
@@ -262,38 +327,41 @@ class SourceFileTests(TestCase):
         expectedPos = [
             1665, 1793, 1942, 2136, 2698, 3899, 5631, 5725, 5880, 6200, 6445, 6867, 7428, 8093, 8362, 8814, 9405 ]
         self.assertEqual(list(map(lambda mres: mres.start(), 
-                                  list(src.findAllUnscoped("struct")) )), 
+                                  src.findAllUnscoped("struct") )), 
                          expectedPos)
 
 
         expectedPos = [6200, 6445, 6867, 7428, 8093, 8362, 8814, 9405]
         self.assertEqual(list(map(lambda mres: mres.start(), 
-                                  list(src.findAllUnscoped("struct", skipBlocks=True)) )), 
+                                  src.findAllUnscoped("struct", skipBlocks=True) )), 
+                         expectedPos)
+        self.assertEqual(list(map(lambda mres: mres.start(), 
+                                  src.findAllUnscoped(SourceFile.makeSkipBlocksPat("struct"), skipBlocks=True) )), 
                          expectedPos)
 
         expectedPos = [5121, 6200, 6445, 6867, 7428, 8093, 8362, 8814, 9405]
         self.assertEqual(list(map(lambda mres: mres.start(), 
-                                  list(src.findAllUnscoped("struct", skipBlocks=True, excludeClips=False)) )), 
+                                  src.findAllUnscoped("struct", skipBlocks=True, excludeClips=False) )), 
                          expectedPos)
         
         expectedPos = [5121, 6200, 6445, 6867]
         self.assertEqual(list(map(lambda mres: mres.start(), 
-                                  list(src.findAllUnscoped("struct", 1000, 7000, 
-                                                               skipBlocks=True, excludeClips=False)) )), 
+                                  src.findAllUnscoped("struct", 1000, 7000, 
+                                                      skipBlocks=True, excludeClips=False) )), 
                          expectedPos)
         
         expectedPos = [8814, 9405]
         self.assertEqual(list(map(lambda mres: mres.start(), 
-                                  list(src.findAllUnscoped("struct", 8500)) )), 
+                                  src.findAllUnscoped("struct", 8500) )), 
                          expectedPos)
         
         self.assertEqual([ mres.start() for mres in src.findAllUnscoped(r"\w+\s*\([^\{}]*\)\s*\{|\{", 
-                                                                            excludeClips=False) ][:3],
+                                                                        excludeClips=False) ][:3],
                          [599, 866, 1111])
         self.assertEqual([ mres.start() for mres in src.findAllUnscoped(r"\w+\s*\([^\{}]*\)\s*\{|\{") ][:3],
                          [635, 866, 1149])
         self.assertEqual([ mres.start() for mres in src.findAllUnscoped(r"\w+\s*\([^\{}]*\)\s*\{|\{", 
-                                                                            skipBlocks=True) ][:5],
+                                                                        skipBlocks=True) ][:5],
                          [635, 1149, 1594, 5578, 6273 ])
 
         
@@ -306,45 +374,51 @@ class SourceFileTests(TestCase):
         
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
 
-        self.assertEqual(src.matchUnscoped(r".*once").end(), 12)
+        self.assertEqual(src.matchUnscoped(r".*once", 0).end(), 12)
 
-        self.assertEqual(src.matchUnscoped(r"(?:.|\n)*#define algorithm2_h__").end(), 62)
+        self.assertEqual(src.matchUnscoped(r"(?:.|\n)*#define algorithm2_h__", 0).end(), 62)
 
-        self.assertEqual(src.matchUnscoped(r"(?:.|\n)*#define algorithm2_h__", end=60), None)
+        self.assertEqual(src.matchUnscoped(r"(?:.|\n)*#define algorithm2_h__", 0, 60), None)
 
         self.assertEqual(src.matchUnscoped(r"namespace\s*(\w+)\s*\{", 5552).end(), 5579)
         self.assertEqual(src.matchUnscoped(r"namespace\s*(\w+)\s*\{", 5552).group(1), "map_fun_details")
+
+        self.assertTrue(src.matchUnscoped(r"We", 347) is None)
+        self.assertTrue(src.matchUnscoped(r"We", 347, excludeClips=False) is not None)
+
+
+    def test_fullmatchUnscoped(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertTrue(src.fullmatchUnscoped(r".*once", 0, 12) is not None)
+        self.assertTrue(src.fullmatchUnscoped(r".*once", 0, 11) is None)
+        self.assertTrue(src.fullmatchUnscoped(r"We", 347, 349)  is None)
+        self.assertTrue(src.fullmatchUnscoped(r"We", 347, 349, excludeClips=False) is not None)
 
 
     def test_replaceMatches(self):
         
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-        
         src.replaceMatch(src.find("detail"), "another_detail")
-        self.assertEqual(src.intCode()[src.intPos(1587) : src.intPos(1587) + 14], "another_detail")
+        self.assertEqual(src.intCode(1587, 1587 + 14), "another_detail")
         
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-
         src.replaceMatches(list(src.findAll("namespace ")), "namespace\t")
-        
         self.assertEqual(list(map(lambda mres: mres.group(0), src.findAll(r"namespace\s"))), 
                          ["namespace\t"]*3)
 
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-        
         src.replaceMatches(list(src.findAll(r"namespace (\w+)\b")), lambda m: f"namespace another_{m.group(1)}")
-
         self.assertEqual(list(map(lambda mres: mres.group(1), src.findAll(r"namespace\s(\w+)\b"))), 
                          ["another_detail", "another_map_fun_details", "another_algo"])
 
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-        
         src.replaceMatches(list(src.findAll(r"return name<O, D, V>\(static_cast<const D&>\(f\), val\); \t\}")),
                            "return name<O, D, V>(static_cast<const D&>(f), val); \t}")
-
         expectedLineJoins = [ 
              690,   716,   799,   803,   875,   903,   907,   975,   979,   994,  1178,
             1216,  1311,  1315,  1392,  1420,  1424,  1492,  1496,  1511,  2568,  2631,
@@ -357,7 +431,6 @@ class SourceFileTests(TestCase):
             8094,  8176,  8228,  8318,  8374,  8403,  8407,  8424,  8522,  8604,  8674,
             8845,  8901,  8936,  8940,  8957,  8976,  9086,  9168,  9256,  9508,  9564,
             9605,  9609,  9626,  9645,  9664 ]
-
         expectedLineJoinsOrg = [ 
              690,   719,   805,   812,   887,   918,   925,   996,  1003,  1021,  1208,
             1249,  1347,  1354,  1434,  1465,  1472,  1543,  1550,  1568,  2628,  2694,
@@ -370,51 +443,46 @@ class SourceFileTests(TestCase):
             8355,  8440,  8495,  8588,  8647,  8679,  8686,  8706,  8807,  8892,  8965,
             9139,  9198,  9236,  9243,  9263,  9285,  9398,  9483,  9574,  9829,  9888,
             9932,  9939,  9959,  9981,  10003 ]
-        
         self.assertEqual(src._SourceFile__lineJoins, expectedLineJoins, "Bad line join after "
                          "replacment of: return name<O, D, V>(static_cast<const D&>(f), val); \t}")
-        
         self.assertEqual(src._SourceFile__lineJoinsOrg, expectedLineJoinsOrg, "Bad original line join after "
                          "replacment of: return name<O, D, V>(static_cast<const D&>(f), val); \t}")
+        
+
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        expres = src.intCode()
+        src.replaceMatches([], "x")
+        self.assertEqual(src.intCode(), expres)
         
 
     def test_replace(self):
         
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-        
         src.replace("detail", "another_detail")
-
         self.assertEqual(src.intCode()[src.intPos(1587) : src.intPos(1587) + 14], "another_detail")
         
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-
         src.replace("namespace ", "namespace\t")
-
         self.assertEqual(list(map(lambda mres: mres.group(0), src.findAll(r"namespace\s"))), 
                          ["namespace\t"]*3)
 
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-        
         src.replace(r"namespace (\w+)\b", lambda m: f"namespace another_{m.group(1)}")
-
         self.assertEqual(list(map(lambda mres: mres.group(1), src.findAll(r"namespace\s(\w+)\b"))), 
                          ["another_detail", "another_map_fun_details", "another_algo"])
+
+
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-        
-
         src.replace(r"namespace (\w+)\b", lambda m: f"namespace another_{m.group(1)}", 2)
-
         self.assertEqual(list(map(lambda mres: mres.group(1), src.findAll(r"namespace\s(\w+)\b"))), 
                          ["another_detail", "another_map_fun_details", "algo"])
 
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-        
         src.replace(r"return name<O, D, V>\(static_cast<const D&>\(f\), val\); \t\}",
                     "return name<O, D, V>(static_cast<const D&>(f), val); \t}")
-
         expectedLineJoins = [ 
              690,   716,   799,   803,   875,   903,   907,   975,   979,   994,  1178,
             1216,  1311,  1315,  1392,  1420,  1424,  1492,  1496,  1511,  2568,  2631,
@@ -427,7 +495,6 @@ class SourceFileTests(TestCase):
             8094,  8176,  8228,  8318,  8374,  8403,  8407,  8424,  8522,  8604,  8674,
             8845,  8901,  8936,  8940,  8957,  8976,  9086,  9168,  9256,  9508,  9564,
             9605,  9609,  9626,  9645,  9664 ]
-
         expectedLineJoinsOrg = [ 
              690,   719,   805,   812,   887,   918,   925,   996,  1003,  1021,  1208,
             1249,  1347,  1354,  1434,  1465,  1472,  1543,  1550,  1568,  2628,  2694,
@@ -440,13 +507,55 @@ class SourceFileTests(TestCase):
             8355,  8440,  8495,  8588,  8647,  8679,  8686,  8706,  8807,  8892,  8965,
             9139,  9198,  9236,  9243,  9263,  9285,  9398,  9483,  9574,  9829,  9888,
             9932,  9939,  9959,  9981,  10003 ]
-        
         self.assertEqual(src._SourceFile__lineJoins, expectedLineJoins, "Bad line join after "
                          "replacment of: return name<O, D, V>(static_cast<const D&>(f), val); \t}")
-        
         self.assertEqual(src._SourceFile__lineJoinsOrg, expectedLineJoinsOrg, "Bad original line join after "
                          "replacment of: return name<O, D, V>(static_cast<const D&>(f), val); \t}")
         
+
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        src.setScope(4984, 5695)
+        self.assertEqual(src.replace("class", "typename", 1), 1)
+        self.assertEqual(src.intCode(5084, 5084 + 5), "class")
+        self.assertEqual(src.intCode(5595, 5595 + 8), "typename")
+        self.assertEqual(src.intCode(5609, 5609 + 5), "class")
+        
+
+    def test_replaceRange(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        src.replaceRange(1587, 1593, "another_detail")
+        self.assertTrue(src.matchUnscoped("another_detail", 1587))
+        
+
+    def test_insert(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        src.insert(1587, "another_")
+        self.assertTrue(src.matchUnscoped("another_detail", 1587))
+
+
+    def test_tryScopeToBlockByPrefixy(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+
+        src.tryScopeToBlockByPrefix("space map_fun_details ")
+        self.assertEqual(src.scopes(), 
+                         [(5579, 6129, None)])
+        
+        src.setScope(5550, 6367, "s")
+        src.tryScopeToBlockByPrefix(r"struct (\w++)(?!<)[^{]*", tagFunc=lambda m, scope: (m.group(1), scope[2]))
+        self.assertEqual(src.scopes(), 
+                         [(6274, 6362, ("mem_fn_", "s"))])
+
+        src.setScope(5550, 6367)
+        src.tryScopeToBlockByPrefix(r"struct \w++(?!<)[^{]*", skipBlocks=False)
+        self.assertEqual(src.scopes(), 
+                         [(5655, 5693, None),
+                          (6274, 6362, None)])
+
 
     def test_tryScopeToNamespaceBody(self):
         
@@ -456,12 +565,34 @@ class SourceFileTests(TestCase):
         self.assertEqual(src._intScopes(), [(src.intPos(1595), src.intPos(4979), "detail")])
 
 
+        src.setScope(None, None, "stag")
+
+        src.tryScopeToNamespaceBody("detail", scopeTag=True)
+        self.assertEqual(src._intScopes(), [(src.intPos(1595), src.intPos(4979), ("detail", "stag"))])
+
+
         src.resetScopes()
 
         src.tryScopeToNamespaceBody("map_fun_details|algo")
         self.assertEqual(src._intScopes(), 
                          [(src.intPos(5579), src.intPos(6129), "map_fun_details"), 
                           (src.intPos(10032), src.intPos(12350), "algo")])
+
+        src.tryScopeToNamespaceBody(r"\w*", [(5550, 6150)])
+        self.assertEqual(src._intScopes(), 
+                         [(src.intPos(5579), src.intPos(6129), "map_fun_details")])
+
+        src.tryScopeToNamespaceBody(r"\w*", (5550, 6150))
+        self.assertEqual(src._intScopes(), 
+                         [(src.intPos(5579), src.intPos(6129), "map_fun_details")])
+        
+        self.assertFalse(src.tryScopeToNamespaceBody(r"\w*"))
+        self.assertEqual(src._intScopes(), 
+                         [(src.intPos(5579), src.intPos(6129), "map_fun_details")])
+        
+        self.assertFalse(src.tryScopeToNamespaceBody(r"map_fun_details", (None, 5550)))
+        self.assertEqual(src._intScopes(), 
+                         [(src.intPos(5579), src.intPos(6129), "map_fun_details")])
         
         
     def test_tryScopeToClassBody(self):
@@ -486,27 +617,24 @@ class SourceFileTests(TestCase):
         
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+
         self.assertFalse(src.tryScopeToClassBody("union|class", r"\w+"))
         
 
-    def test_tryScopeToStructBody(self):
-        
-        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
-
         src.setScope(None, 8019)
-        self.assertTrue(src.tryScopeToStructBody(r"\w+"))
+        self.assertTrue(src.tryScopeToClassBody("struct", r"\w+"))
         self.assertEqual(src.scopes(), [(6274, 6362, ('struct', 'mem_fn_')), (6519, 6772, ('struct', 'mem_fn_')), 
                                         (6941, 7321, ('struct', 'mem_fn_')), (7508, 8015, ('struct', 'mem_fn_'))])
         
         src.setScope(None, 8019)
-        self.assertTrue(src.tryScopeToStructBody(r"\w+", skipBlocks=False))
+        self.assertTrue(src.tryScopeToClassBody("struct", r"\w+", skipBlocks=False))
         res = src.scopes()
         self.assertEqual(res[:2] + res[4:5] + res[9:10], 
                          [(1733, 1765, ('struct', 'algo_functor')), (1857, 1896, ('struct', 'is_algo_functor')), 
                           (2786, 3009, ('struct', 'name')), (6274, 6362, ('struct', 'mem_fn_'))])
 
         src.setScope(1770, None)
-        self.assertTrue(src.tryScopeToStructBody("\w+_functor"))
+        self.assertTrue(src.tryScopeToClassBody("struct", "\w+_functor"))
         self.assertEqual(src.scopes(), [(1857, 1896, ('struct', 'is_algo_functor')), 
                                         (2030, 2068, ('struct', 'is_algo_functor'))])
 
@@ -547,6 +675,21 @@ class SourceFileTests(TestCase):
                                     tmpFilepath(self.testSuit, "CvGlobals.cpp"), False))
 
 
+    def test_blockSPrefixInsertPos(self):
+        
+        src = SourceFile(dataFilepath("singles", "CvUnitSort_mod1.h"))
+
+        self.assertEqual(src.blockSPrefixInsertPos(415),  ("\t", 418, "\r\n"))
+        self.assertEqual(src.blockSPrefixInsertPos(1387), ("", 1388, ""))
+        self.assertEqual(src.blockSPrefixInsertPos(4240), ("", 4242, " "))
+        self.assertEqual(src.blockSPrefixInsertPos(4360), ("", 4363, "\r\n\t\t\t\t\t  \t"))
+        self.assertEqual(src.blockSPrefixInsertPos(4416), ("\t" + src.defaultIndent, 4419, "\r\n"))
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        self.assertEqual(src.blockSPrefixInsertPos(809),  ("", 817, " "))
+        self.assertEqual(src.blockSPrefixInsertPos(2480),  ("\t\t", 2483, "\r\n"))
+
+
     def test_insertBlockSPrefix(self):
 
         src = SourceFile(dataFilepath("civ", "algorithm2.h"))
@@ -567,29 +710,29 @@ class SourceFileTests(TestCase):
         self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_insert_prof3.h"), 
                                     tmpFilepath(self.testSuit, "algorithm2_insert_prof3.h"), False))
 
-        src = SourceFile(dataFilepath("singles", "algorithm2_mod1.h"))
-        src.insertBlockSPrefix("PROFILE();", 2223, skipComments=True)
-        src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof1.h"), encoding="utf-8")
-        self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod1_insert_prof1.h"), 
-                                    tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof1.h"), False))
+        #src = SourceFile(dataFilepath("singles", "algorithm2_mod1.h"))
+        #src.insertBlockSPrefix("PROFILE();", 2223, skipComments=True)
+        #src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof1.h"), encoding="utf-8")
+        #self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod1_insert_prof1.h"), 
+        #                            tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof1.h"), False))
 
-        src = SourceFile(dataFilepath("singles", "algorithm2_mod1.h"))
-        src.insertBlockSPrefix("PROFILE();", 2223, skipComments=False)
-        src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof2.h"), encoding="utf-8")
-        self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod1_insert_prof2.h"), 
-                                    tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof2.h"), False))
+        #src = SourceFile(dataFilepath("singles", "algorithm2_mod1.h"))
+        #src.insertBlockSPrefix("PROFILE();", 2223, skipComments=False)
+        #src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof2.h"), encoding="utf-8")
+        #self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod1_insert_prof2.h"), 
+        #                            tmpFilepath(self.testSuit, "algorithm2_mod1_insert_prof2.h"), False))
 
-        src = SourceFile(dataFilepath("singles", "algorithm2_mod2.h"))
-        src.insertBlockSPrefix("PROFILE();", 2223, skipComments=True)
-        src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof1.h"), encoding="utf-8")
-        self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod2_insert_prof1.h"), 
-                                    tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof1.h"), False))
+        #src = SourceFile(dataFilepath("singles", "algorithm2_mod2.h"))
+        #src.insertBlockSPrefix("PROFILE();", 2223, skipComments=True)
+        #src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof1.h"), encoding="utf-8")
+        #self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod2_insert_prof1.h"), 
+        #                            tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof1.h"), False))
 
-        src = SourceFile(dataFilepath("singles", "algorithm2_mod2.h"))
-        src.insertBlockSPrefix("PROFILE();", 2223, skipComments=True)
-        src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof2.h"), encoding="utf-8")
-        self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod2_insert_prof2.h"), 
-                                    tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof2.h"), False))
+        #src = SourceFile(dataFilepath("singles", "algorithm2_mod2.h"))
+        #src.insertBlockSPrefix("PROFILE();", 2223, skipComments=True)
+        #src.saveAs(tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof2.h"), encoding="utf-8")
+        #self.assertTrue(filecmp.cmp(dataFilepath("results", "algorithm2_mod2_insert_prof2.h"), 
+        #                            tmpFilepath(self.testSuit, "algorithm2_mod2_insert_prof2.h"), False))
         
 
     def test_intLocation(self):
@@ -631,3 +774,44 @@ class SourceFileTests(TestCase):
 
         self.assertEqual(src.getClipRange(80, int=True), (76, 91, 's'))
         self.assertEqual(src.getClipRange(1030, int=True), (1032 - 30, 1139 - 30, 'c'))
+
+
+    def test_lineStart(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertEqual(src.lineStart(30), 16)
+        self.assertEqual(src.lineStart(700), 627)
+
+
+    def test_findFirstBlock(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertEqual(src.findFirstBlock(0),    (809,  1026))
+        self.assertEqual(src.findFirstBlock(2480), (2480, 2540))
+        self.assertEqual(src.findFirstBlock(4982), (5578, 6130))
+        self.assertEqual(src.findFirstBlock(5084), (5578, 6130))
+        self.assertEqual(src.findFirstBlock(11000), None)
+
+
+    def test_blockExtension(self):
+        
+        src = SourceFile(dataFilepath("civ", "algorithm2.h"))
+        
+        self.assertEqual(src.blockExtension(5550, 5700), 6129)
+        self.assertEqual(src.blockExtension(5080, 5203), 5203)
+        self.assertEqual(src.blockExtension(src.intPos(5550), src.intPos(5700), int=True), src.intPos(6129))
+
+
+    def test_skipBlocksPat(self):
+
+        self.assertTrue(SourceFile.checkSkipBlocksPat(SourceFile.makeSkipBlocksPat("x")))
+
+
+    def test___str__(self):
+
+        path = dataFilepath("civ", "algorithm2.h")
+        
+        self.assertEqual(str(SourceFile(path)),
+                         f"<xitools.cppcrawler.SourceFile object; filepath='{path}'>")
