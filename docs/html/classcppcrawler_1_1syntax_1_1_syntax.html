@@ -23,6 +23,7 @@
 
 
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
+<link href="style.css" rel="stylesheet" type="text/css"/>
 
 </head>
 <body>
@@ -148,9 +149,9 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>removeComments</b> (co
 <tr class="memitem:aa8e3232422b3c75dda94809684ed0658"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#aa8e3232422b3c75dda94809684ed0658">parseType</a> (code, start=0)</td></tr>
 <tr class="memdesc:aa8e3232422b3c75dda94809684ed0658"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parses a type and returns it in the base prototype normal form.  <br /></td></tr>
 <tr class="separator:aa8e3232422b3c75dda94809684ed0658"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab490dc20659664910122e426622cc0d5"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#ab490dc20659664910122e426622cc0d5">parseMethPrototype</a> (code, start=0)</td></tr>
-<tr class="memdesc:ab490dc20659664910122e426622cc0d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parses a method prototype and returns it in the normal form.  <br /></td></tr>
-<tr class="separator:ab490dc20659664910122e426622cc0d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a75075c3f30f58637d763ede71e892921"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#a75075c3f30f58637d763ede71e892921">parseMethPrototype</a> (code, start=0, *prefixCheck=True)</td></tr>
+<tr class="memdesc:a75075c3f30f58637d763ede71e892921"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parses a method prototype and returns it in the normal form.  <br /></td></tr>
+<tr class="separator:a75075c3f30f58637d763ede71e892921"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af01fb07f38ebca93136c3120e23a583e"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#af01fb07f38ebca93136c3120e23a583e">parseClassPrefix</a> (code, start=0)</td></tr>
 <tr class="memdesc:af01fb07f38ebca93136c3120e23a583e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parses a class, structure or union prefix.  <br /></td></tr>
 <tr class="separator:af01fb07f38ebca93136c3120e23a583e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -376,7 +377,7 @@ Static Public Attributes</h2></td></tr>
 <p>E.g., <code>Foo::bar(unsigned`int, vector&lt;pair&lt;int,`int&gt;`&gt;*) const</code> .</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">prot</td><td>Valid method/function prototype in the normal form (see <a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#ab490dc20659664910122e426622cc0d5" title="Parses a method prototype and returns it in the normal form.">Syntax.parseMethPrototype</a>). </td></tr>
+    <tr><td class="paramname">prot</td><td>Valid method/function prototype in the normal form (see <a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#a75075c3f30f58637d763ede71e892921" title="Parses a method prototype and returns it in the normal form.">Syntax.parseMethPrototype</a>). </td></tr>
   </table>
   </dd>
 </dl>
@@ -459,8 +460,8 @@ Static Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="ab490dc20659664910122e426622cc0d5" name="ab490dc20659664910122e426622cc0d5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab490dc20659664910122e426622cc0d5">&#9670;&#160;</a></span>parseMethPrototype()</h2>
+<a id="a75075c3f30f58637d763ede71e892921" name="a75075c3f30f58637d763ede71e892921"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a75075c3f30f58637d763ede71e892921">&#9670;&#160;</a></span>parseMethPrototype()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -475,7 +476,13 @@ Static Public Attributes</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>start</em> = <code>0</code>&#160;</td>
+          <td class="paramname"><em>start</em> = <code>0</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">*&#160;</td>
+          <td class="paramname"><em>prefixCheck</em> = <code>True</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -486,6 +493,7 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Parses a method prototype and returns it in the normal form. </p>
+<p>Parsing ends on <code>;</code>, <code>{</code> or <code>:</code>, for easiness of determining if the prototype is a forward declaration or a definition (see the return description).</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">code</td><td>The code. </td></tr>
@@ -493,10 +501,14 @@ Static Public Attributes</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Pair <code>(prot, end)</code> or <code>None</code>, where <code>prot</code> is the parsed prototype in the normal form (see <a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#ad8ee5c740fc54657c12ecab4ca1fe249" title="Given a method or function prototype in the normal form returns a regular expression that matches it.">Syntax.makeMethProtRe</a>) and <code>end</code> is the end position of the parsed code piece.</dd></dl>
-<dl class="section remark"><dt>Remarks</dt><dd>Currently no support for function types, volatail modifiers, possibly more (the autor hasn't checked the whole C++ syntax).</dd></dl>
-<dl class="section user"><dt>Example</dt><dd>Input: <code>"std::vector &lt;std::pair&lt;unsigned int , const char *&gt;&gt;"</code> <br  />
- Output: <code>"std::vector&lt;std::pair&lt;unsigned`int,`const`char*&gt;`&gt;"</code> </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Pair <code>(prot, nargs, end)</code> or <code>None</code>, where <code>prot</code> is the parsed prototype in the normal form (see <a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#ad8ee5c740fc54657c12ecab4ca1fe249" title="Given a method or function prototype in the normal form returns a regular expression that matches it.">Syntax.makeMethProtRe</a>), <code>nargs</code> is the argument name list and <code>end</code> is the end position of the parsed code piece. The character <code>code[end]</code> has to be in <code>";{:"</code>. </dd></dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">ValueError</td><td>Thrown if <code>prefixCheck=True</code> and parsed code is directly preceded by <code>#endif</code>. This is because there is currently no support for verifying code in if-branches.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section remark"><dt>Remarks</dt><dd>Currently no support for function types, volatile modifiers, possibly more (the author hasn't checked the whole C++ syntax). </dd></dl>
 
 </div>
 </div>
@@ -563,7 +575,7 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Regular expression that can be used to find a potential method or function prototype. </p>
-<p>To confirm if it is the prototype, call <a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#ab490dc20659664910122e426622cc0d5" title="Parses a method prototype and returns it in the normal form.">Syntax.parseMethPrototype</a>. </p>
+<p>To confirm if it is the prototype, call <a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#a75075c3f30f58637d763ede71e892921" title="Parses a method prototype and returns it in the normal form.">Syntax.parseMethPrototype</a>. </p>
 
 </div>
 </div>

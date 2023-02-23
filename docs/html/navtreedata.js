@@ -25,6 +25,8 @@
 var NAVTREE =
 [
   [ "XiTools.Py.CppCrawler", "index.html", [
+    [ "XiTools C++ Crawler", "index.html", "index" ],
+    [ "Examples", "examples.html", "examples" ],
     [ "Classes", "annotated.html", [
       [ "Class List", "annotated.html", "annotated_dup" ],
       [ "Class Index", "classes.html", null ],

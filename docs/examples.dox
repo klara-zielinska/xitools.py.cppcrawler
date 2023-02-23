@@ -1,0 +1,95 @@
+/*! @page examples Examples
+ *
+ *  * @subpage searchHealthMethods
+ *  * @subpage if0Comments
+ *  * @subpage profilingC2C 
+ */
+ 
+ 
+ /*! @page searchHealthMethods Searching methods
+  *
+  * The following example finds all methods containing `health` in their names, in 
+  * all classes and structures of names `Cv*Info` across all source files located in the `Sources` directory.
+  *
+  * @par 01_search_health_methods\\search_health_methods.py
+  * @include{lineno} 01_search_health_methods/search_health_methods.py
+  *
+  * The prefix `(?i)` in the regular expression stands for *case insensitive*, `(?P<name>...)` for a named capture group
+  * where `name` is the name, `\b` is a 0-width *word edge*, `\w` is a literal character and `\s` is a white space. (See
+  * the Python `re` module  documentation for details.)
+  * 
+  * The method `tryScopeToClassBody` creates search scopes in the underlying object, one per each found class (note that 
+  * structures and unions are also C++ classes). These scopes are tagged with pairs `(kind, name)`, where 
+  * `kind` is: `class`, `struct` or `union` and `name` is the class name.
+  * 
+  * The switch `scopeTag` in the `findAll` method specifies that each returned result should be paired with the tag of the 
+  * scope where the match was found. The switch `skipBlocks` specifies to not search inside blocks.
+  * 
+  * Finding a `methRe` match does not guarantee, it is a valid method declaration (it could be an initializer).
+  * We verify this by calling `parseMethPrototype`, which except parsing also validate the prefix code.
+  * 
+  * The `intCode` method takes optionally start and end positions, and returns a piece of the internal code between them 
+  * &ndash; no second argument means *till the end*. The internal code is the original code with all `\<new line>` 
+  * sequences removed (same as the preprocessor does). The arguments are by default positions with respect to the original
+  * code. However the crawler can operate on both internal and original indices.
+  * 
+  * The `start` and `startLoc` methods of a match object return, respectively, the start position and the pair: line 
+  * number, character position in the line, both with respect to original code.
+  * 
+  * 
+  * @par Example output
+  * ```
+  * C:\Projects\Caveman2Cosmos\Sources\CvBonusInfo.h
+  * ---
+  * (class) CvBonusInfo::getHealth (28, 6)
+  * 
+  * 
+  * C:\Projects\Caveman2Cosmos\Sources\CvBuildingInfo.h
+  * ---
+  * (class) CvBuildingInfo::isNoUnhealthyPopulation (58, 7)
+  * (class) CvBuildingInfo::isBuildingOnlyHealthy (59, 7)
+  * ...
+  * 
+  * 
+  * C:\Projects\Caveman2Cosmos\Sources\CvImprovementInfo.h
+  * ---
+  * (class) CvImprovementInfo::getHealthPercent (99, 6)
+  * 
+  * 
+  * C:\Projects\Caveman2Cosmos\Sources\CvInfos.h
+  * ---
+  * (class) CvSpecialistInfo::getHealthPercent (256, 6)
+  * (class) CvTechInfo::getHealth (378, 6)
+  * (class) CvCivicInfo::getExtraHealth (2937, 6)
+  * ...
+  * 
+  * C:\Projects\Caveman2Cosmos\Sources\CvDummyInfo.cpp
+  * ---
+  * (struct) CvDummyInfo::dummyHealth (5, 6)
+  * ```
+  * 
+  * The last entry is added for the presentation.
+  */
+ 
+ 
+ /*! @page if0Comments Replacing #if 0 blocks with comments
+  *
+  * The following script comments out all `#if 0` blocks (supports #else but not #elif).
+  *
+  * @par 02_comment_if0s\\comment_if0s.py
+  * @include{lineno} 02_comment_if0s/comment_if0s.py
+  *
+  */
+ 
+ 
+/*! @page profilingC2C Adding extra profiling to the Caveman2Cosmos project
+ *
+ * The following script was used to analyse and add extra profiling to around 2000 methods (out of 17&nbsp;000) in the
+ * [Caveman2Cosmos](https://www.moddb.com/mods/caveman2cosmos) project.  
+ *
+ * The script is verbose for possible human interaction, but should be readable. 
+ *
+ * @par 03_c2c_extra_profiling\\add_extra_profiling.py
+ * @include{lineno} 03_c2c_extra_profiling/add_extra_profiling.py
+ *
+ */

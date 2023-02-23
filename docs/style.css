@@ -1,0 +1,21 @@
+h1 {
+	margin-top: 1em;
+	font-size: 17pt;
+}
+
+dd {
+	margin-inline-start: 1em;
+}
+
+div .contents {
+	margin: 2em;
+	width: max(78%, 800px);
+}
+
+div .fragment {
+	padding: 0.8em 1em;
+}
+
+div .line {
+	margin: 0.5em 0;
+}

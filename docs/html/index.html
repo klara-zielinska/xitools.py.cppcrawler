@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.6"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>XiTools.Py.CppCrawler: Main Page</title>
+<title>XiTools.Py.CppCrawler: XiTools C++ Crawler</title>
 
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 
@@ -23,6 +23,7 @@
 
 
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
+<link href="style.css" rel="stylesheet" type="text/css"/>
 
 </head>
 <body>
@@ -109,10 +110,93 @@ $(document).ready(function(){initNavTree('index.html',''); initResizable(); });
 </div>
 </div>
 
-<div class="header">
-  <div class="headertitle"><div class="title">XiTools.Py.CppCrawler Documentation</div></div>
+<div><div class="header">
+  <div class="headertitle"><div class="title">XiTools C++ Crawler </div></div>
 </div><!--header-->
 <div class="contents">
+<div class="textblock"><p><a class="anchor" id="md_C__Projects_XiTools_Py_CppCrawler_README"></a> The C++ Crawler is a tool for processing and querying C++ code. It allows advanced searches and replacements.</p>
+<h1><a class="anchor" id="autotoc_md1"></a>
+Key features</h1>
+<ul>
+<li>Searching for regular expressions</li>
+<li>Searching for C++ language constructions (e.g., classes, method declarations, method definitions)</li>
+<li>Omitting comments, string literals or blocks during searches</li>
+<li>Replacing matched code</li>
+<li>Creating scopes in source files (e.g., scoping to specified classes, method bodies)</li>
+<li>Performing searches and replacements restricted to scopes, possibly in many files at once</li>
+<li>Matching scopes (e.g., to filter methods starting with a given prefix)</li>
+<li>Contains a tag system that allows to pass information between scopes and searches (e.g., one can scope to a class set tagged with names, search for methods and return a result tagged with pairs class + method name)</li>
+<li>Contains features that facilitate loading and managing sources</li>
+</ul>
+<h1><a class="anchor" id="autotoc_md2"></a>
+Short example</h1>
+<p>The following example finds all methods containing <code>health</code> in their names, in all classes and structures with names matching <code>Cv*Info</code> across all source files located in the <code>Sources</code> directory.</p>
+<div class="fragment"><div class="line"><span class="keyword">from</span> xitools.cppcrawler <span class="keyword">import</span> *</div>
+<div class="line">crawler = CppCrawler(<span class="stringliteral">&quot;Sources&quot;</span>)</div>
+<div class="line"> </div>
+<div class="line">methSearchRe = <span class="stringliteral">r&quot;(?i)\b(?P&lt;name&gt;\w*health\w*)\s*\&zwj;(&quot;</span></div>
+<div class="line"><span class="keywordflow">for</span> src <span class="keywordflow">in</span> crawler.loadSourceFiles([<span class="stringliteral">&quot;*.h&quot;</span>, <span class="stringliteral">&quot;*.cpp&quot;</span>]):</div>
+<div class="line">    <span class="keywordflow">if</span> src.tryScopeToClassBody(<span class="stringliteral">&quot;class|struct&quot;</span>, <span class="stringliteral">r&quot;Cv\w*Info&quot;</span>):</div>
+<div class="line">        found = []</div>
+<div class="line">        <span class="keywordflow">for</span> (rmatch, stag) <span class="keywordflow">in</span> src.findAll(methSearchRe, scopeTag=<span class="keyword">True</span>, skipBlocks=<span class="keyword">True</span>):</div>
+<div class="line">            <span class="keywordflow">if</span> Syntax.parseMethPrototype(src.intCode(rmatch.start())):</div>
+<div class="line">                found.append((rmatch, stag))</div>
+<div class="line"> </div>
+<div class="line">        <span class="keywordflow">if</span> found:</div>
+<div class="line">            print(<span class="stringliteral">&quot;\n\n&quot;</span> + src.filepath() + <span class="stringliteral">&quot;\n---&quot;</span>)</div>
+<div class="line">            <span class="keywordflow">for</span> rmatch, (kind, name) <span class="keywordflow">in</span> found:</div>
+<div class="line">                print(f<span class="stringliteral">&#39;({kind}) {name}::{rmatch.group(&quot;name&quot;)}&#39;</span>, rmatch.startLoc())</div>
+</div><!-- fragment --><p>The prefix <code>(?i)</code> in the regular expression stands for <em>case insensitive</em>, <code>(?P&lt;name&gt;...)</code> for a named capture group, <code>\b</code> is a 0-width symbol matching a literal edge, <code>\w</code> is a literal character and <code>\s</code> is a white space. (See the Python <code>re</code> module documentation for more details.)</p>
+<p>The method <code>tryScopeToClassBody</code> creates scopes in the underlying object, one per each found class (note that structures and unions are also C++ classes). These scopes are tagged with pairs <code>(kind, name)</code>, where <code>kind</code> is: <code>class</code>, <code>struct</code> or <code>union</code> and <code>name</code> is the class name.</p>
+<p>The <code>findAll</code> method searches created scopes. The <code>scopeTag</code> switch specifies that each returned result should be paired with the tag of the scope where the match was found. The switch <code>skipBlocks</code> specifies to not search inside blocks.</p>
+<p>The pattern <code>methRe</code> is an approximation that finds potential method prototypes. We then verify them by calling <code>parseMethPrototype</code>. (This method also verifies the prefixed code to ensure the validity of the prototype.)</p>
+<p>The <code>intCode</code> optionally takes 2 arguments: start and end position, and returns the code between them - no second argument means <em>till the end</em>.</p>
+<p>The <code>start</code> method of a match object returns its starting position. The <code>startLoc</code> method returns the pair: line number, in-line character position.</p>
+<p>Example output: </p><div class="fragment"><div class="line">C:\Projects\Caveman2Cosmos\Sources\CvBonusInfo.h</div>
+<div class="line">---</div>
+<div class="line">(class) CvBonusInfo::getHealth (28, 6)</div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line">C:\Projects\Caveman2Cosmos\Sources\CvBuildingInfo.h</div>
+<div class="line">---</div>
+<div class="line">(class) CvBuildingInfo::isNoUnhealthyPopulation (58, 7)</div>
+<div class="line">(class) CvBuildingInfo::isBuildingOnlyHealthy (59, 7)</div>
+<div class="line">...</div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line">C:\Projects\Caveman2Cosmos\Sources\CvImprovementInfo.h</div>
+<div class="line">---</div>
+<div class="line">(class) CvImprovementInfo::getHealthPercent (99, 6)</div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line">C:\Projects\Caveman2Cosmos\Sources\CvInfos.h</div>
+<div class="line">---</div>
+<div class="line">(class) CvSpecialistInfo::getHealthPercent (256, 6)</div>
+<div class="line">(class) CvTechInfo::getHealth (378, 6)</div>
+<div class="line">(class) CvCivicInfo::getExtraHealth (2937, 6)</div>
+<div class="line">...</div>
+<div class="line"> </div>
+<div class="line">C:\Projects\Caveman2Cosmos\Sources\CvDummyInfo.cpp</div>
+<div class="line">---</div>
+<div class="line">(struct) CvDummyInfo::dummyHealth (5, 6)</div>
+</div><!-- fragment --><p>The last entry is added for the presentation reasons.</p>
+<p>The example is available in the repository in: <em>examples/01_search_health_methods</em></p>
+<h1><a class="anchor" id="autotoc_md3"></a>
+Applications</h1>
+<p>The crawler was used in the <a href="https://www.moddb.com/mods/caveman2cosmos">Caveman2Cosmos</a> project to:</p><ul>
+<li>conduct simple code qualification of around 17&#160;000 methods and add profiling to around 2000 of them,</li>
+<li>comment out all <code>#if 0</code> blocks.</li>
+</ul>
+<p>The scripts are included as examples.</p>
+<h1><a class="anchor" id="autotoc_md4"></a>
+Disclaimer</h1>
+<p>The project is in its infant stage. Backward compatibility is not expected in the first few releases. Afterward it is going to be highly expected. Releases will be provided with a list of methods that have changed. Patches (the last number in the version) are going to be backward compatible, as usual.</p>
+<p>The current solutions were designed to solve specific problems and need to be refined. For instance, searching sources was initially based on scopes in source file objects, but searching without setting scopes appeared handy, thus there are methods like find and findUnscoped, which probably should be refactored and consolidated.</p>
+<p><u>The crawler does not currently support Unix-style line endings</u> - but it is of high priority. If you want to use it for Unix sources, you may convert them to Windows-style, use it, and then convert it back.</p>
+<h1><a class="anchor" id="autotoc_md5"></a>
+Documentation</h1>
+<p>Documentation available in the repository at: <em>docs/html/index.html</em> </p>
+</div></div><!-- PageDoc -->
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

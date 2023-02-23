@@ -5,7 +5,7 @@ var searchData=
   ['makeskipblockspat_2',['makeSkipBlocksPat',['../classcppcrawler_1_1sourcefile_1_1_source_file.html#a96afb197f6f78c81b5c8f2f94e7bae20',1,'cppcrawler::sourcefile::SourceFile']]],
   ['maketypere_3',['makeTypeRe',['../classcppcrawler_1_1syntax_1_1_syntax.html#ade27da8b8984717042298b5b502c1bc7',1,'cppcrawler::syntax::Syntax']]],
   ['matcheach_4',['matchEach',['../classcppcrawler_1_1sourcescopedict_1_1_source_scope_dict.html#a8c937bccb01d7ca468c8910f363d8288',1,'cppcrawler::sourcescopedict::SourceScopeDict']]],
-  ['matchunscoped_5',['matchUnscoped',['../classcppcrawler_1_1sourcefile_1_1_source_file.html#a4fbe6a6987b38ed31759f012a6184d59',1,'cppcrawler::sourcefile::SourceFile']]],
+  ['matchunscoped_5',['matchUnscoped',['../classcppcrawler_1_1sourcefile_1_1_source_file.html#a8e8406c44283ab902fd27204ff3d0b9b',1,'cppcrawler::sourcefile::SourceFile']]],
   ['methfinderre_6',['methFinderRe',['../classcppcrawler_1_1syntax_1_1_syntax.html#a5872e609baade19f4e30581de0dfabe2',1,'cppcrawler::syntax::Syntax']]],
   ['missing_7',['missing',['../classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a56aae5c65307c25a4dff5b0e227cffbd',1,'cppcrawler::sourcematchdict::SourceMatchDict']]]
 ];

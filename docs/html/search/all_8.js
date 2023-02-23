@@ -1,7 +1,7 @@
 var searchData=
 [
   ['insert_0',['insert',['../classcppcrawler_1_1sourcefile_1_1_source_file.html#a4d492a3776ae4c98655f03a586e29122',1,'cppcrawler.sourcefile.SourceFile.insert()'],['../classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a90189d33da5d631cf2455538085bced5',1,'cppcrawler.sourcematchdict.SourceMatchDict.insert()'],['../classcppcrawler_1_1sourcescopedict_1_1_source_scope_dict.html#a359d0fa9081a0888455fce811860553f',1,'cppcrawler.sourcescopedict.SourceScopeDict.insert()']]],
-  ['insertblocksprefix_1',['insertBlockSPrefix',['../classcppcrawler_1_1sourcefile_1_1_source_file.html#ad254dcd7d06f434a790825d1deb694e2',1,'cppcrawler::sourcefile::SourceFile']]],
+  ['insertblocksprefix_1',['insertBlockSPrefix',['../classcppcrawler_1_1sourcefile_1_1_source_file.html#a537e8eed40a5ca79f5bf7be76f2c4813',1,'cppcrawler::sourcefile::SourceFile']]],
   ['intcode_2',['intCode',['../classcppcrawler_1_1sourcefile_1_1_source_file.html#a69d0830e5350f294923892ea5c5f77ca',1,'cppcrawler::sourcefile::SourceFile']]],
   ['intend_3',['intEnd',['../classcppcrawler_1_1sourcematch_1_1_source_match.html#ad0d6e6756a7f903f62006aeac758956c',1,'cppcrawler.sourcematch.SourceMatch.intEnd()'],['../classcppcrawler_1_1sourcematch_1_1_source_regex_match.html#abf5619d120511b3219eacf3c208cc7ed',1,'cppcrawler.sourcematch.SourceRegexMatch.intEnd()'],['../classcppcrawler_1_1sourcematch_1_1_source_range_match.html#abba1041437bebf18365002545bc45f9f',1,'cppcrawler.sourcematch.SourceRangeMatch.intEnd()']]],
   ['intlineno_4',['intLineNo',['../classcppcrawler_1_1sourcefile_1_1_source_file.html#ae87ac2c999fc6b583645be68f1bed854',1,'cppcrawler::sourcefile::SourceFile']]],
