@@ -39,7 +39,7 @@
   
   
   <td id="projectalign">
-   <div id="projectname">XiTools.Py.CppCrawler<span id="projectnumber">&#160;0.0.1</span>
+   <div id="projectname">XiTools.Py.CppCrawler<span id="projectnumber">&#160;0.1-alpha1</span>
    </div>
    
   </td>
@@ -160,7 +160,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>sourceDir</b> (self)</
 <tr class="memdesc:aee6f759ca47fa6532758dc67dfc3d571"><td class="mdescLeft">&#160;</td><td class="mdescRight">Filters out matches that are precoded with the given regular expression.  <br /></td></tr>
 <tr class="separator:aee6f759ca47fa6532758dc67dfc3d571"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1bdc4530bb91adbd4e96f52088ee1ee7"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a1bdc4530bb91adbd4e96f52088ee1ee7">scopesBehind</a> (self)</td></tr>
-<tr class="memdesc:a1bdc4530bb91adbd4e96f52088ee1ee7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns SourceScopeDict with the scopes placed behind matches in <code>self</code>.  <br /></td></tr>
+<tr class="memdesc:a1bdc4530bb91adbd4e96f52088ee1ee7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns <a class="el" href="classcppcrawler_1_1sourcescopedict_1_1_source_scope_dict.html#SourceScopeDict">SourceScopeDict</a> with the scopes placed behind matches in <code>self</code>.  <br /></td></tr>
 <tr class="separator:a1bdc4530bb91adbd4e96f52088ee1ee7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3fde91ae5d728e9c5092250c1e026d15"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a3fde91ae5d728e9c5092250c1e026d15">isDictTagged</a> (d)</td></tr>
 <tr class="memdesc:a3fde91ae5d728e9c5092250c1e026d15"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determines if a dictionary is tagged.  <br /></td></tr>
@@ -174,7 +174,7 @@ Static Public Attributes</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Dictionary class that stores <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> for further processing. </p>
-<p>It inherits from <code>dict</code> where keys are <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> and values are lists of either <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> or pairs <code>(</code> <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> <code>, tag)</code> &ndash; <code>tag</code> may be anything. The lists are ordered as inserted.</p>
+<p><a class="anchor" id="SourceMatchDict"></a> It inherits from <code>dict</code> where keys are <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> and values are lists of either <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> or pairs <code>(</code><a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> <code>, tag)</code> &ndash; <code>tag</code> may be anything. The lists are ordered as inserted.</p>
 <p>A user is obligated to maintain the order in value lists if he manipulates them directly. For safe insertion see <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a90189d33da5d631cf2455538085bced5" title="Inserts a match (preserves the matches order).">SourceMatchDict.insert</a>. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="add3ca2a71e373544beea108469dd6905" name="add3ca2a71e373544beea108469dd6905"></a>
@@ -216,8 +216,8 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">other</td><td>Dictionary to be copied. May be <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html" title="Dictionary class that stores SourceMatch for further processing.">SourceMatchDict</a> or other dictionary with te same structure. In the latter case the it cannot contain key <code>None</code>. </td></tr>
-    <tr><td class="paramname">tagged</td><td>Determinies if matches should contain tags. If <code>None</code>, it is determined upon <code>other</code>. </td></tr>
+    <tr><td class="paramname">other</td><td>Dictionary to be copied. May be <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html" title="Dictionary class that stores SourceMatch for further processing.">SourceMatchDict</a> or other dictionary with the same structure. In the latter case the it cannot contain key <code>None</code>. </td></tr>
+    <tr><td class="paramname">tagged</td><td>Determines if matches should contain tags. If <code>None</code>, it is determined upon <code>other</code>. </td></tr>
     <tr><td class="paramname">sourceDir</td><td>The source directory &ndash; used to determine relative paths. </td></tr>
   </table>
   </dd>
@@ -411,7 +411,7 @@ Static Public Attributes</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">src</td><td>The <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>. </td></tr>
-    <tr><td class="paramname">tmatch</td><td><a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> or pair <code>(</code> <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> <code>, tag)</code>. If the match is <code>None</code>, <code>tmatch</code> is appended in the <code>None</code> key in the <code>src</code> subkey. </td></tr>
+    <tr><td class="paramname">tmatch</td><td><a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> or pair <code>(</code><a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a> <code>, tag)</code>. If the match is <code>None</code>, <code>tmatch</code> is appended in the <code>None</code> key in the <code>src</code> subkey. </td></tr>
   </table>
   </dd>
 </dl>
@@ -437,7 +437,7 @@ Static Public Attributes</h2></td></tr>
 <p>Determines if a dictionary is tagged. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">d</td><td><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html" title="Dictionary class that stores SourceMatch for further processing.">SourceMatchDict</a> or a non-empty <code>{</code> <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> <code>: &lt;tmatch&gt; list }</code> where <code>&lt;tmatch&gt;</code> is a possibly tagged <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a>. </td></tr>
+    <tr><td class="paramname">d</td><td><a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html" title="Dictionary class that stores SourceMatch for further processing.">SourceMatchDict</a> or a non-empty <code>{</code><a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> <code>: &lt;tmatch&gt; list }</code> where <code>&lt;tmatch&gt;</code> is a possibly tagged <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#SourceMatch">SourceMatch</a>. </td></tr>
   </table>
   </dd>
 </dl>
@@ -460,7 +460,7 @@ Static Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Returns SourceScopeDict with the scopes placed behind matches in <code>self</code>. </p>
+<p>Returns <a class="el" href="classcppcrawler_1_1sourcescopedict_1_1_source_scope_dict.html#SourceScopeDict">SourceScopeDict</a> with the scopes placed behind matches in <code>self</code>. </p>
 <p>If <code>self</code> if tagged, the tags are copied. </p>
 
 </div>
@@ -487,7 +487,7 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Contains information about missed searches in the form of a dictionary from <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> to either pairs <code>(None, tag)</code> or <code>None</code> values &ndash; depending on the tagging. </p>
-<p>Each item corresponds to one miss. This approach is chosen to allow proccessing uniformely with other items in the main dictionary (one can use the same function to iterate over them). </p>
+<p>Each item corresponds to one miss. This approach is chosen to allow processing uniformly with other items in the main dictionary (one can use the same function to iterate over them). </p>
 
 </div>
 </div>

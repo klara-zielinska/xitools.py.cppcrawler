@@ -74,7 +74,10 @@
  
  /*! @page if0Comments Replacing #if 0 blocks with comments
   *
-  * The following script comments out all `#if 0` blocks (supports #else but not #elif).
+  * The following script comments out all `#if 0` blocks in the source files in a `Sources` directory. It does not 
+  * support `#elif`, but it is not hard to add it --
+  * we will leave it as an exercise to not complicate the example (note that `#elif 0` should also be taken into 
+  * consideration).
   *
   * @par 02_comment_if0s\\comment_if0s.py
   * @include{lineno} 02_comment_if0s/comment_if0s.py

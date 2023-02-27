@@ -39,7 +39,7 @@
   
   
   <td id="projectalign">
-   <div id="projectname">XiTools.Py.CppCrawler<span id="projectnumber">&#160;0.0.1</span>
+   <div id="projectname">XiTools.Py.CppCrawler<span id="projectnumber">&#160;0.1-alpha1</span>
    </div>
    
   </td>
@@ -143,7 +143,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>isTagged</b> (self)</t
 <tr class="memdesc:a359d0fa9081a0888455fce811860553f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inserts a scope.  <br /></td></tr>
 <tr class="separator:a359d0fa9081a0888455fce811860553f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8c937bccb01d7ca468c8910f363d8288"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcescopedict_1_1_source_scope_dict.html#a8c937bccb01d7ca468c8910f363d8288">matchEach</a> (self, pat)</td></tr>
-<tr class="memdesc:a8c937bccb01d7ca468c8910f363d8288"><td class="mdescLeft">&#160;</td><td class="mdescRight">Matchs all scopes against the given pattern and returns a SourceMatchDict.  <br /></td></tr>
+<tr class="memdesc:a8c937bccb01d7ca468c8910f363d8288"><td class="mdescLeft">&#160;</td><td class="mdescRight">Matches all scopes against the given pattern and returns a <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#SourceMatchDict">SourceMatchDict</a>.  <br /></td></tr>
 <tr class="separator:a8c937bccb01d7ca468c8910f363d8288"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5e1255b0bd2c7c434bf67c44bc364273"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcescopedict_1_1_source_scope_dict.html#a5e1255b0bd2c7c434bf67c44bc364273">isDictTagged</a> (d)</td></tr>
 <tr class="memdesc:a5e1255b0bd2c7c434bf67c44bc364273"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determines if a dictionary is tagged.  <br /></td></tr>
@@ -151,7 +151,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>isTagged</b> (self)</t
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Dictionary class that stores source file scopes. </p>
-<p>It inherits from <code>dict</code> where keys are <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> and values are lists of either pairs <code>(start, end)</code> or triples <code>(start, end, tag)</code> &ndash; <code>start</code>, <code>end</code> are original source file positions (see <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>) and <code>tag</code> may be anything. The lists are positionally ordered.</p>
+<p><a class="anchor" id="SourceScopeDict"></a> It inherits from <code>dict</code> where keys are <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> and values are lists of either pairs <code>(start, end)</code> or triples <code>(start, end, tag)</code> &ndash; <code>start</code>, <code>end</code> are original source file positions (see <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>) and <code>tag</code> may be anything. The lists are positionally ordered.</p>
 <p>A user is obligated to maintain the order in value lists if he manipulates them directly. For safe insertion see <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#a90189d33da5d631cf2455538085bced5" title="Inserts a match (preserves the matches order).">SourceMatchDict.insert</a>. </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="affc75beb3fd5590495fc0c95dda32a39" name="affc75beb3fd5590495fc0c95dda32a39"></a>
@@ -194,7 +194,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>isTagged</b> (self)</t
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">other</td><td>Dictionary to be copied. </td></tr>
-    <tr><td class="paramname">tagged</td><td>Determinies if scopes should contain tags. If <code>None</code>, it is determined upon <code>other</code>. </td></tr>
+    <tr><td class="paramname">tagged</td><td>Determines if scopes should contain tags. If <code>None</code>, it is determined upon <code>other</code>. </td></tr>
     <tr><td class="paramname">int</td><td>If <code>True</code>, positions in <code>other</code> are taken as internal (see <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>). </td></tr>
   </table>
   </dd>
@@ -245,7 +245,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>isTagged</b> (self)</t
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">src</td><td>The <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>. </td></tr>
-    <tr><td class="paramname">tmatch</td><td>Pair <code>(start, end)</code> or triple <code>(start, end, tag)</code>, where <code>start</code>, <code>end</code> are original source file positions (see <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>) and <code>tag</code> may be anything. </td></tr>
+    <tr><td class="paramname">scope</td><td>Pair <code>(start, end)</code> or triple <code>(start, end, tag)</code>, where <code>start</code>, <code>end</code> are original source file positions (see <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>) and <code>tag</code> may be anything. </td></tr>
     <tr><td class="paramname">int</td><td>If <code>True</code>, positions in <code>scope</code> are taken as internal (see <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>). </td></tr>
   </table>
   </dd>
@@ -272,7 +272,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>isTagged</b> (self)</t
 <p>Determines if a dictionary is tagged. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">d</td><td><a class="el" href="classcppcrawler_1_1sourcescopedict_1_1_source_scope_dict.html" title="Dictionary class that stores source file scopes.">SourceScopeDict</a> or a non-empty <code>{</code> <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> <code>: &lt;scope&gt; list }</code> where <code>&lt;scope&gt;</code> is a pair <code>(start, end)</code> or a triple <code>(start, end, tag)</code>, <code>start</code>, <code>end</code> are original source file positions (see <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>) and <code>tag</code> may be anything. </td></tr>
+    <tr><td class="paramname">d</td><td><a class="el" href="classcppcrawler_1_1sourcescopedict_1_1_source_scope_dict.html" title="Dictionary class that stores source file scopes.">SourceScopeDict</a> or a non-empty <code>{</code><a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> <code>: &lt;scope&gt; list }</code> where *&lt;scope&gt;* is a pair <code>(start, end)</code> or a triple <code>(start, end, tag)</code>, <code>start</code>, <code>end</code> are original source file positions (see <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>) and <code>tag</code> may be anything. </td></tr>
   </table>
   </dd>
 </dl>
@@ -305,7 +305,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>isTagged</b> (self)</t
       </table>
 </div><div class="memdoc">
 
-<p>Matchs all scopes against the given pattern and returns a SourceMatchDict. </p>
+<p>Matches all scopes against the given pattern and returns a <a class="el" href="classcppcrawler_1_1sourcematchdict_1_1_source_match_dict.html#SourceMatchDict">SourceMatchDict</a>. </p>
 <p>Tags in the result are copied form the matched scopes. </p>
 
 </div>

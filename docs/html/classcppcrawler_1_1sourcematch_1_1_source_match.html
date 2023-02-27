@@ -39,7 +39,7 @@
   
   
   <td id="projectalign">
-   <div id="projectname">XiTools.Py.CppCrawler<span id="projectnumber">&#160;0.0.1</span>
+   <div id="projectname">XiTools.Py.CppCrawler<span id="projectnumber">&#160;0.1-alpha1</span>
    </div>
    
   </td>
@@ -118,7 +118,7 @@ $(document).ready(function(){initNavTree('classcppcrawler_1_1sourcematch_1_1_sou
 </div><!--header-->
 <div class="contents">
 
-<p>Abstract class to represent regex.Match-like matches in SourceFile-s.  
+<p>Abstract class to represent <code>regex.Match</code>-like matches in <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>.  
  <a href="classcppcrawler_1_1sourcematch_1_1_source_match.html#details">More...</a></p>
 <div class="dynheader">
 Inheritance diagram for cppcrawler.sourcematch.SourceMatch:</div>
@@ -126,16 +126,16 @@ Inheritance diagram for cppcrawler.sourcematch.SourceMatch:</div>
  <div class="center">
   <img src="classcppcrawler_1_1sourcematch_1_1_source_match.png" usemap="#cppcrawler.sourcematch.SourceMatch_map" alt=""/>
   <map id="cppcrawler.sourcematch.SourceMatch_map" name="cppcrawler.sourcematch.SourceMatch_map">
-<area href="classcppcrawler_1_1sourcematch_1_1_source_range_match.html" title="Impementation of SourceMatch that is based on a list of indice ranges in a source." alt="cppcrawler.sourcematch.SourceRangeMatch" shape="rect" coords="0,112,268,136"/>
-<area href="classcppcrawler_1_1sourcematch_1_1_source_regex_match.html" title="Impementation of SourceMatch that wraps regex.Match." alt="cppcrawler.sourcematch.SourceRegexMatch" shape="rect" coords="278,112,546,136"/>
+<area href="classcppcrawler_1_1sourcematch_1_1_source_range_match.html" title="Implementation of SourceMatch that is based on a list of indice ranges in a source." alt="cppcrawler.sourcematch.SourceRangeMatch" shape="rect" coords="0,112,268,136"/>
+<area href="classcppcrawler_1_1sourcematch_1_1_source_regex_match.html" title="Implementation of SourceMatch that wraps regex.Match." alt="cppcrawler.sourcematch.SourceRegexMatch" shape="rect" coords="278,112,546,136"/>
   </map>
 </div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a0645bc20255b14b90532b916d9ed04a3"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#a0645bc20255b14b90532b916d9ed04a3">__init__</a> (self, sourcefile, copySource=True)</td></tr>
-<tr class="memdesc:a0645bc20255b14b90532b916d9ed04a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor that has to be called in child classes.  <br /></td></tr>
-<tr class="separator:a0645bc20255b14b90532b916d9ed04a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a37c6d9c89054e40cbd28f981b43448fb"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#a37c6d9c89054e40cbd28f981b43448fb">__init__</a> (self, src, copySource=True)</td></tr>
+<tr class="memdesc:a37c6d9c89054e40cbd28f981b43448fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor that has to be called in child classes.  <br /></td></tr>
+<tr class="separator:a37c6d9c89054e40cbd28f981b43448fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3a31f084b8bbe31f60c7d807df25e79a"><td class="memItemLeft" align="right" valign="top"><a id="a3a31f084b8bbe31f60c7d807df25e79a" name="a3a31f084b8bbe31f60c7d807df25e79a"></a>
 def&#160;</td><td class="memItemRight" valign="bottom"><b>__getitem__</b> (self, *<a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#a64d2d37ddbca2408d871d555fcdea448">groups</a>)</td></tr>
 <tr class="memdesc:a3a31f084b8bbe31f60c7d807df25e79a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equivalent to <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#a2e92ad8efa8a16b6d246dafe8bdf0752" title="Returns one or more subgroups of the match.">SourceMatch.group</a>. <br /></td></tr>
@@ -184,7 +184,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>endLoc</b> (self, <a c
 <tr class="memdesc:a54de7846df38a44fd0d661f10be56686"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a dictionary containing all the named subgroups of the match, keyed by the subgroup name.  <br /></td></tr>
 <tr class="separator:a54de7846df38a44fd0d661f10be56686"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a64d2d37ddbca2408d871d555fcdea448"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#a64d2d37ddbca2408d871d555fcdea448">groups</a> (self, default=None)</td></tr>
-<tr class="memdesc:a64d2d37ddbca2408d871d555fcdea448"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a tuple containing all the subgroups of the match from 1.  <br /></td></tr>
+<tr class="memdesc:a64d2d37ddbca2408d871d555fcdea448"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a tuple containing all the subgroups of the match from <code>1</code>.  <br /></td></tr>
 <tr class="separator:a64d2d37ddbca2408d871d555fcdea448"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa48afe837ade3dffea141971b2935f25"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#aa48afe837ade3dffea141971b2935f25">captures</a> (self, <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_match.html#a2e92ad8efa8a16b6d246dafe8bdf0752">group</a>=0)</td></tr>
 <tr class="memdesc:aa48afe837ade3dffea141971b2935f25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns all substrings that were matched to the given group.  <br /></td></tr>
@@ -197,11 +197,11 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>endLoc</b> (self, <a c
 <tr class="separator:a3d636f4282324ca77bd544da9f42971e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Abstract class to represent regex.Match-like matches in SourceFile-s. </p>
+<div class="textblock"><p>Abstract class to represent <code>regex.Match</code>-like matches in <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a>. </p>
 <p><a class="anchor" id="SourceMatch"></a></p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a0645bc20255b14b90532b916d9ed04a3" name="a0645bc20255b14b90532b916d9ed04a3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0645bc20255b14b90532b916d9ed04a3">&#9670;&#160;</a></span>__init__()</h2>
+<a id="a37c6d9c89054e40cbd28f981b43448fb" name="a37c6d9c89054e40cbd28f981b43448fb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a37c6d9c89054e40cbd28f981b43448fb">&#9670;&#160;</a></span>__init__()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -216,7 +216,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>endLoc</b> (self, <a c
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>sourcefile</em>, </td>
+          <td class="paramname"><em>src</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -235,8 +235,8 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>endLoc</b> (self, <a c
 <p>Constructor that has to be called in child classes. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">src</td><td>The SourceFile in which the match was made. </td></tr>
-    <tr><td class="paramname">copySource</td><td>If True, a shallow copy of src is made for internal use. Set False only if src will not be modified. Otherwise the object can become invalid. </td></tr>
+    <tr><td class="paramname">src</td><td>The <a class="el" href="classcppcrawler_1_1sourcefile_1_1_source_file.html#SourceFile">SourceFile</a> in which the match was made. </td></tr>
+    <tr><td class="paramname">copySource</td><td>If <code>True</code>, a shallow copy of <code>src</code> is made for internal use. Set <code>False</code> only if <code>src</code> will not be modified. Otherwise the object can become invalid. </td></tr>
   </table>
   </dd>
 </dl>
@@ -273,7 +273,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>endLoc</b> (self, <a c
 </div><div class="memdoc">
 
 <p>Order based on the positions of entire matches (group 0). </p>
-<p>Comparing with None is always False. </p>
+<p>Comparing with <code>None</code> is always <code>False</code>. </p>
 
 </div>
 </div>
@@ -336,7 +336,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>endLoc</b> (self, <a c
 </div><div class="memdoc">
 
 <p>Returns the indices of the ends of the substrings matched by subgroups. </p>
-<p>If there is a single argument, the result is a single number; if there are multiple arguments, the result is a tuple with one item per argument. No arguments is equivalent to passing 0. The 0 argument means the entire match. If a passed group exists, but did not contribute to the match, -1 is returned. </p>
+<p>If there is a single argument, the result is a single number; if there are multiple arguments, the result is a tuple with one item per argument. No arguments is equivalent to passing <code>0</code>. The <code>0</code> argument means the entire match. If a passed group exists, but did not contribute to the match, <code>-1</code> is returned. </p>
 
 </div>
 </div>
@@ -399,7 +399,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>endLoc</b> (self, <a c
 </div><div class="memdoc">
 
 <p>Returns one or more subgroups of the match. </p>
-<p>If there is a single argument, the result is a single string; if there are multiple arguments, the result is a tuple with one item per argument. No arguments is equivalent to passing 0. The 0 argument results in the entire match. </p>
+<p>If there is a single argument, the result is a single string; if there are multiple arguments, the result is a tuple with one item per argument. No arguments is equivalent to passing <code>0</code>. The <code>0</code> argument results in the entire match. </p>
 
 </div>
 </div>
@@ -430,7 +430,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>endLoc</b> (self, <a c
 </div><div class="memdoc">
 
 <p>Returns a dictionary containing all the named subgroups of the match, keyed by the subgroup name. </p>
-<p>The default argument is used for groups that did not participate in the match; it defaults to None. </p>
+<p>The default argument is used for groups that did not participate in the match; it defaults to <code>None</code>. </p>
 
 <p>Reimplemented in <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_regex_match.html#a2e25ace16de50a58541ed9d118908e58">cppcrawler.sourcematch.SourceRegexMatch</a>, and <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_range_match.html#acb9ab52219057ba15ac5ecc911354473">cppcrawler.sourcematch.SourceRangeMatch</a>.</p>
 
@@ -462,8 +462,8 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>endLoc</b> (self, <a c
       </table>
 </div><div class="memdoc">
 
-<p>Returns a tuple containing all the subgroups of the match from 1. </p>
-<p>The default argument is used for groups that did not participate in the match; it defaults to None. </p>
+<p>Returns a tuple containing all the subgroups of the match from <code>1</code>. </p>
+<p>The default argument is used for groups that did not participate in the match; it defaults to <code>None</code>. </p>
 
 <p>Reimplemented in <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_regex_match.html#af11bdbd0cb421d62bc5e1b212238f1b5">cppcrawler.sourcematch.SourceRegexMatch</a>, and <a class="el" href="classcppcrawler_1_1sourcematch_1_1_source_range_match.html#a5481fbbfc35185fbd8e7660671e5ca48">cppcrawler.sourcematch.SourceRangeMatch</a>.</p>
 
@@ -560,7 +560,7 @@ def&#160;</td><td class="memItemRight" valign="bottom"><b>endLoc</b> (self, <a c
 </div><div class="memdoc">
 
 <p>Returns the indices of the starts of the substrings matched by subgroups. </p>
-<p>If there is a single argument, the result is a single number; if there are multiple arguments, the result is a tuple with one item per argument. No arguments is equivalent to passing 0. The 0 argument means the entire match. If a passed group exists, but did not contribute to the match, -1 is returned. </p>
+<p>If there is a single argument, the result is a single number; if there are multiple arguments, the result is a tuple with one item per argument. No arguments is equivalent to passing <code>0</code>. The <code>0</code> argument means the entire match. If a passed group exists, but did not contribute to the match, <code>-1</code> is returned. </p>
 
 </div>
 </div>

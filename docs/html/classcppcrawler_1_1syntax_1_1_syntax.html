@@ -39,7 +39,7 @@
   
   
   <td id="projectalign">
-   <div id="projectname">XiTools.Py.CppCrawler<span id="projectnumber">&#160;0.0.1</span>
+   <div id="projectname">XiTools.Py.CppCrawler<span id="projectnumber">&#160;0.1-alpha1</span>
    </div>
    
   </td>
@@ -184,11 +184,11 @@ Static Public Attributes</h2></td></tr>
 <tr class="separator:a4653c571fe84d0e665f3707dbfd1664d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac47758baa4f46823cf5530b332976ac2"><td class="memItemLeft" align="right" valign="top"><a id="ac47758baa4f46823cf5530b332976ac2" name="ac47758baa4f46823cf5530b332976ac2"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>clipRe</b> = _clipRe</td></tr>
-<tr class="memdesc:ac47758baa4f46823cf5530b332976ac2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Regular expression matching clipped ranges - comments, string or char literals. <br /></td></tr>
+<tr class="memdesc:ac47758baa4f46823cf5530b332976ac2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Regular expression matching clipped ranges &ndash; comments, string or char literals. <br /></td></tr>
 <tr class="separator:ac47758baa4f46823cf5530b332976ac2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3b9289d61d7d98d3217c5e92c40eb26d"><td class="memItemLeft" align="right" valign="top"><a id="a3b9289d61d7d98d3217c5e92c40eb26d" name="a3b9289d61d7d98d3217c5e92c40eb26d"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>clipPat</b> = _clipPat</td></tr>
-<tr class="memdesc:a3b9289d61d7d98d3217c5e92c40eb26d"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#ac47758baa4f46823cf5530b332976ac2" title="Regular expression matching clipped ranges - comments, string or char literals.">Syntax.clipRe</a> compiled with regex.compile. <br /></td></tr>
+<tr class="memdesc:a3b9289d61d7d98d3217c5e92c40eb26d"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#ac47758baa4f46823cf5530b332976ac2" title="Regular expression matching clipped ranges – comments, string or char literals.">Syntax.clipRe</a> compiled with regex.compile. <br /></td></tr>
 <tr class="separator:a3b9289d61d7d98d3217c5e92c40eb26d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5872e609baade19f4e30581de0dfabe2"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#a5872e609baade19f4e30581de0dfabe2">methFinderRe</a> = _methFinderRe</td></tr>
 <tr class="memdesc:a5872e609baade19f4e30581de0dfabe2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Regular expression that can be used to find a potential method or function prototype.  <br /></td></tr>
@@ -196,6 +196,7 @@ Static Public Attributes</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Class for parsing and manipulating C++ syntax. </p>
+<p><a class="anchor" id="Syntax"></a></p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="ac3cfb7431c489c63eecc578c09688e91" name="ac3cfb7431c489c63eecc578c09688e91"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac3cfb7431c489c63eecc578c09688e91">&#9670;&#160;</a></span>addIndent()</h2>
@@ -226,6 +227,7 @@ Static Public Attributes</h2></td></tr>
 <p>Adds an indentation to all lines. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramname">code</td><td>Code piece. </td></tr>
     <tr><td class="paramname">indent</td><td>String to be inserted. </td></tr>
   </table>
   </dd>
@@ -285,7 +287,7 @@ Static Public Attributes</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Pair <code>(id, rem)</code>, where <code>id</code> is a qualified id in the form of a list of name specifiers (the specifiers of <code>A::B</code> are <code>A</code>, <code>B</code>) and <code>rem</code> is the reimaing prototype part.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Pair <code>(id, rem)</code>, where <code>id</code> is a qualified id in the form of a list of name specifiers (the specifiers of <code>A::B</code> are <code>A</code>, <code>B</code>) and <code>rem</code> is the remaining prototype part.</dd></dl>
 <dl class="section user"><dt>Example</dt><dd><code>extractMethProtId("::std::vector&lt;std::pair&lt;int,`int&gt;`&gt;::clear()")</code> <br  />
  returns <code>(["", "std", "vector&lt;std::pair&lt;int,`int&gt;`&gt;", "clear"], "()")</code> </dd></dl>
 
@@ -328,7 +330,7 @@ Static Public Attributes</h2></td></tr>
 <li>no white spaces,</li>
 <li>a single <code>`</code> in places where a white space is required (e.g., <code>unsigned`int</code>),</li>
 <li>sequences <code>&gt;&gt;</code> split with <code>`</code> if they are not a single operator (e.g., <code>vector&lt;vector&lt;int&gt;`&gt;</code>),</li>
-<li>the 3 symbols: <code>(</code> <code>)</code> <code>,</code> followed by <code>`</code> (e.g., &lt;int,<code>pair&lt;int,</code>int&gt;`&gt;).</li>
+<li>the 3 symbols: <code>(</code> <code>)</code> <code>,</code> followed by <code>`</code> (e.g., <code>&lt;int,`pair&lt;int,`int&gt;`&gt;</code>).</li>
 </ul>
 <p>The backtick <code>`</code> should be understand as a separator between tokens or an escape character.</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -339,7 +341,7 @@ Static Public Attributes</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Regular exression matching <code>prot</code> in C++ code. Specifically it is <code>prot</code> with:<ul>
+<dl class="section return"><dt>Returns</dt><dd>Regular expression matching <code>prot</code> in C++ code. Specifically it is <code>prot</code> with:<ul>
 <li>removed <code>`</code>,</li>
 <li>escaped <code>regex</code> symbols,</li>
 <li>white space patterns added around symbolic tokens,</li>
@@ -370,9 +372,9 @@ Static Public Attributes</h2></td></tr>
 <p>Method/function prototype normal form:</p><ul>
 <li>no return type,</li>
 <li>prefix before argument parentheses has to be in the base normal form (see <a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#a8f67bfb49bd4d67fc509ca74c441a41c" title="Helper that given a piece of a prototype in the base normal form returns a regular expression that ma...">Syntax.makeBaseProtRe</a>),</li>
-<li>argument parenteses has to contain only types of arguments in the base normal form split with <code>", "</code> and no extra spaces,,</li>
+<li>argument parentheses has to contain only types of arguments in the base normal form split with <code>", "</code> and no extra spaces,,</li>
 <li>argument parentheses are not escaped with <code>`</code></li>
-<li>after the parenteses <code>" const"</code> is allowed.</li>
+<li>after the parentheses <code>" const"</code> is allowed.</li>
 </ul>
 <p>E.g., <code>Foo::bar(unsigned`int, vector&lt;pair&lt;int,`int&gt;`&gt;*) const</code> .</p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -381,7 +383,7 @@ Static Public Attributes</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Regular exression matching <code>prot</code> in C++ code. Specifically it is <code>prot</code> with:<ul>
+<dl class="section return"><dt>Returns</dt><dd>Regular expression matching <code>prot</code> in C++ code. Specifically it is <code>prot</code> with:<ul>
 <li>removed <code>`</code>,</li>
 <li>escaped <code>regex</code> symbols,</li>
 <li>white space patterns added around symbolic tokens,</li>
@@ -498,6 +500,7 @@ Static Public Attributes</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">code</td><td>The code. </td></tr>
     <tr><td class="paramname">start</td><td>Starting position. </td></tr>
+    <tr><td class="paramname">prefixCheck</td><td>If <code>True</code>, code before <code>start</code> is checked to ensure if it points a prototype. </td></tr>
   </table>
   </dd>
 </dl>
@@ -546,8 +549,8 @@ Static Public Attributes</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Pair <code>(tp, end)</code> or <code>None</code>, where <code>tp</code> is the parsed type in the base prtotype normal form (see <a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#a8f67bfb49bd4d67fc509ca74c441a41c" title="Helper that given a piece of a prototype in the base normal form returns a regular expression that ma...">Syntax.makeBaseProtRe</a>) and <code>end</code> is the end position of the parsed code piece.</dd></dl>
-<dl class="section remark"><dt>Remarks</dt><dd>Currently no support for function types, possibly more (the autor hasn't checked the whole C++ syntax).</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Pair <code>(tp, end)</code> or <code>None</code>, where <code>tp</code> is the parsed type in the base prototype normal form (see <a class="el" href="classcppcrawler_1_1syntax_1_1_syntax.html#a8f67bfb49bd4d67fc509ca74c441a41c" title="Helper that given a piece of a prototype in the base normal form returns a regular expression that ma...">Syntax.makeBaseProtRe</a>) and <code>end</code> is the end position of the parsed code piece.</dd></dl>
+<dl class="section remark"><dt>Remarks</dt><dd>Currently no support for function types, and possibly more (the author hasn't checked the whole C++ syntax).</dd></dl>
 <dl class="section user"><dt>Example</dt><dd>Input: <code>"std::vector &lt;std::pair&lt;unsigned int , const char *&gt;&gt;"</code> <br  />
  Output: <code>"std::vector&lt;std::pair&lt;unsigned`int,`const`char*&gt;`&gt;"</code> </dd></dl>
 

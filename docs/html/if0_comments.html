@@ -39,7 +39,7 @@
   
   
   <td id="projectalign">
-   <div id="projectname">XiTools.Py.CppCrawler<span id="projectnumber">&#160;0.0.1</span>
+   <div id="projectname">XiTools.Py.CppCrawler<span id="projectnumber">&#160;0.1-alpha1</span>
    </div>
    
   </td>
@@ -114,7 +114,7 @@ $(document).ready(function(){initNavTree('if0_comments.html',''); initResizable(
   <div class="headertitle"><div class="title">Replacing #if 0 blocks with comments </div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>The following script comments out all <code>#if 0</code> blocks (supports #else but not #elif).</p>
+<div class="textblock"><p>The following script comments out all <code>#if 0</code> blocks in the source files in a <code>Sources</code> directory. It does not support <code>#elif</code>, but it is not hard to add it &ndash; we will leave it as an exercise to not complicate the example (note that <code>#elif 0</code> should also be taken into consideration).</p>
 <dl class="section user"><dt>02_comment_if0s\comment_if0s.py</dt><dd><div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span><span class="keyword">from</span> xitools.cppcrawler <span class="keyword">import</span> *</div>
 <div class="line"><a id="l00002" name="l00002"></a><span class="lineno">    2</span>crawler = CppCrawler(<span class="stringliteral">&quot;Sources&quot;</span>, backupDir=<span class="stringliteral">&quot;Backup&quot;</span>, encoding=<span class="stringliteral">&quot;utf-8&quot;</span>)</div>
 <div class="line"><a id="l00003" name="l00003"></a><span class="lineno">    3</span> </div>
@@ -141,14 +141,14 @@ $(document).ready(function(){initNavTree('if0_comments.html',''); initResizable(
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span> </div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="keywordflow">for</span> src <span class="keywordflow">in</span> crawler.loadSourceFiles([<span class="stringliteral">&quot;*.h&quot;</span>, <span class="stringliteral">&quot;*.cpp&quot;</span>]):</div>
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>    pos = 0</div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    <span class="keywordflow">while</span> match := src.findUnscoped(<span class="stringliteral">r&quot;(?&lt;=^|\r\n)[ \t]*#if\s+0\b.*\n?&quot;</span>, pos):</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    <span class="keywordflow">while</span> match := src.findUnscoped(<span class="stringliteral">r&quot;(?&lt;=^|\n)[ \t]*#if[ \t]+0\b.*\n?&quot;</span>, pos):</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>        match2 = findEndifElse(src, match.end())</div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>        <span class="keyword">assert</span> match2, srcMatchMsg(src, match, <span class="stringliteral">&quot;#if has no #endif&quot;</span>)</div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>        pos = match2.end()</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span> </div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>        match match2.group(<span class="stringliteral">&quot;dir&quot;</span>):</div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>            case <span class="stringliteral">&quot;elif&quot;</span>:</div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>                print(srcMatchMsg(src, match, <span class="stringliteral">&quot;#elif not supported&quot;</span>))</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>                print(srcMatchMsg(src, match2, <span class="stringliteral">&quot;#elif not supported&quot;</span>))</div>
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>                <span class="keywordflow">continue</span></div>
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span> </div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>            case <span class="stringliteral">&quot;else&quot;</span>:</div>
@@ -158,7 +158,7 @@ $(document).ready(function(){initNavTree('if0_comments.html',''); initResizable(
 <div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>                                                 <span class="comment"># we need to perform them latter first</span></div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span> </div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>        src.setScope(match.start(), match2.start())</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>        src.replace(<span class="stringliteral">r&quot;(?&lt;=^|\r\n)&quot;</span>, <span class="stringliteral">&quot;//&quot;</span>)</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>        src.replace(<span class="stringliteral">r&quot;(?&lt;=^|\n)&quot;</span>, <span class="stringliteral">&quot;//&quot;</span>)</div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>        toSave.add(src)</div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>        <span class="comment"># after inserting // pos can be inside a comment - this is ok, because findUnscoped omits comments</span></div>
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span> </div>
