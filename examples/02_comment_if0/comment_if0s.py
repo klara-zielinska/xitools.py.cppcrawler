@@ -24,14 +24,14 @@ toSave = set()
 
 for src in crawler.loadSourceFiles(["*.h", "*.cpp"]):
     pos = 0
-    while match := src.findUnscoped(r"(?<=^|\r\n)[ \t]*#if\s+0\b.*\n?", pos):
+    while match := src.findUnscoped(r"(?<=^|\n)[ \t]*#if[ \t]+0\b.*\n?", pos):
         match2 = findEndifElse(src, match.end())
         assert match2, srcMatchMsg(src, match, "#if has no #endif")
         pos = match2.end()
 
         match match2.group("dir"):
             case "elif":
-                print(srcMatchMsg(src, match, "#elif not supported"))
+                print(srcMatchMsg(src, match2, "#elif not supported"))
                 continue
 
             case "else":
@@ -41,7 +41,7 @@ for src in crawler.loadSourceFiles(["*.h", "*.cpp"]):
                                                  # we need to perform them latter first
 
         src.setScope(match.start(), match2.start())
-        src.replace(r"(?<=^|\r\n)", "//")
+        src.replace(r"(?<=^|\n)", "//")
         toSave.add(src)
         # after inserting // pos can be inside a comment - this is ok, because findUnscoped omits comments
 
