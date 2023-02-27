@@ -4,7 +4,7 @@ funcExtraProfileMacro = "PROFILE_EXTRA_FUNC"  # name of the macro to be included
 
 limit = 100000  # max number of methods to add profiling
 
-filesToProcess = [ "*.h", "*.cpp" ]
+includedFiles = [ "*.h", "*.cpp" ]
 
 excludedFiles = [
     "cvgamecoredll.h", "cvgamecoredll.cpp", "nipoint.h", "fassert.h", "fassert.cpp", "win32.h", "win32.cpp", 
@@ -12,19 +12,6 @@ excludedFiles = [
     ]   
 
 excludedProts = [ ]  # prototypes of methods not to be profiled
-
-
-
-### PREAMBULA ###
-
-import os, sys
-
-try: # setting current directory when running in VS interactive mode
-    curdir = os.path.dirname(os.popen("VS.CurrentDocPath " + os.getenv("_PTVS_PID")).read())
-    os.chdir(curdir)
-except: pass
-
-sys.path.append("..")
 
 
 
@@ -39,10 +26,9 @@ from xitools.cppcrawler import *
 __  = f"(?:{Syntax.commentRe}|\\s)" # used in regular expressions to match code considered a white space in C++
 ___ = f"{__}*+"                     # like above but many
 
-crawler = CppCrawler(r"Sources", backupDir="Backup", encoding="utf-8-sig")
-sources = crawler.loadSourceFiles(filesToProcess)
-
-excludedFiles =  [str.lower() for str in excludedFiles] + ["fprofiler.h"]
+crawler = CppCrawler(r"..\..\..\Sources", backupDir="Backup", encoding="utf-8-sig")
+sources = crawler.loadSourceFiles(includedFiles)
+excludedFiles =  [path.lower() for path in excludedFiles] + ["fprofiler.h"]
 
 
 
@@ -66,7 +52,7 @@ def error(msg, src=None, ln=None):
     raise Exception
 
 def askYesNo(msg):
-    res = input(msg + " (y/n):").strip().lower()
+    res = input(msg + " (y/n): ").strip().lower()
     while res not in ["y", "n"]:
         res = input("Wrong answer. Try again:").strip().lower()
     return res
@@ -87,7 +73,7 @@ skippedFiles       = set()
 skippedDefs        = {}
 includesToAdd      = {}
 includesWarn       = {}
-modifiedSrcs       = set()
+sourcesToSave      = set()
 
 
 
@@ -119,7 +105,7 @@ def addInclude(file, incname):
     else:
         src = file
 
-    matchPref = src.matchUnscoped(srcPrefixPat)
+    matchPref = src.matchUnscoped(srcPrefixPat, 0)
     qIncluded = src.findUnscoped(r'#include[ \t]+"(?i:'f"{incname}"r')"')
     aIncluded = src.findUnscoped(r'#include[ \t]+<(?i:'f"{incname}"r')>')
     included = qIncluded or aIncluded
@@ -152,7 +138,7 @@ def addInclude(file, incname):
         else: src.insert(matchPref.start("insert1"), 
                          f'\r\n#include "{incname}"\r\n' + ("" if matchPref.group("insert1") else "\r\n"))
         includesToAdd.setdefault(src, []).append(incname)
-        modifiedSrcs.add(src)
+        sourcesToSave.add(src)
         info(f"Include directive added: {incname}", src)
 
 
@@ -310,16 +296,16 @@ def addProfiling():
                          # of tagged matches
 
         for (ln, prot, code, begin) in profileToAdd[src]:
-            (pos, space) = src.posToInsertBlockSPrefix(begin) # position to insert a single-line block prefix and
+            (hdspace, pos, tlspace) = src.blockSPrefixInsertPos(begin) # position to insert a single-line block prefix and
                                                               # space to be added behind for indentation preservation
             replMatches.append((SourceRangeMatch(src, (pos, pos), copySource=False), 
-                                f"{funcExtraProfileMacro}();" + space))
+                                hdspace + f"{funcExtraProfileMacro}();" + tlspace))
 
         if replMatches:
             src.replaceMatches(replMatches, lambda tmatch: tmatch[1]) # the method takes a list of possibly tagged 
                                                                       # matches and a function that for such a match
                                                                       # returns the replacement code
-            modifiedSrcs.add(src)
+            sourcesToSave.add(src)
             addFProfilerTo.add(src.filepath())
     
     print()
@@ -340,7 +326,7 @@ def addProfiling():
 
 def save():
     print("Saving...", end=" ")
-    crawler.saveSources(modifiedSrcs)
+    crawler.saveSources(sourcesToSave, encoding="utf-8")
     print("Done")
     print("Backup available in:", crawler.backupBucketDirs()[-1])
     print()
@@ -358,11 +344,11 @@ if askYesNo(f"Do you want to continue? You can do it later by calling 'addProfil
              "profiled.") == 'y':
     addProfiling()
 
-    if not modifiedSrcs:
+    if not sourcesToSave:
         print("Nothing to save")
 
-    elif askYesNo(f"Do you want to save {len(modifiedSrcs)} file(s)? "
-                   "You can do it later by calling 'save()'.") == 'y':
+    elif askYesNo(f"Do you want to save {len(sourcesToSave)} file(s)? You can do it later by calling 'save()'.\n"
+                   "You can verify the content to be saved in the sourcesToSave variable.") == 'y':
         save()
 
 print()
