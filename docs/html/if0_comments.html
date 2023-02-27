@@ -115,7 +115,7 @@ $(document).ready(function(){initNavTree('if0_comments.html',''); initResizable(
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>The following script comments out all <code>#if 0</code> blocks in the source files in a <code>Sources</code> directory. It does not support <code>#elif</code>, but it is not hard to add it &ndash; we will leave it as an exercise to not complicate the example (note that <code>#elif 0</code> should also be taken into consideration).</p>
-<dl class="section user"><dt>02_comment_if0s\comment_if0s.py</dt><dd><div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span><span class="keyword">from</span> xitools.cppcrawler <span class="keyword">import</span> *</div>
+<dl class="section user"><dt>02_comment_if0\comment_if0.py</dt><dd><div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span><span class="keyword">from</span> xitools.cppcrawler <span class="keyword">import</span> *</div>
 <div class="line"><a id="l00002" name="l00002"></a><span class="lineno">    2</span>crawler = CppCrawler(<span class="stringliteral">&quot;Sources&quot;</span>, backupDir=<span class="stringliteral">&quot;Backup&quot;</span>, encoding=<span class="stringliteral">&quot;utf-8&quot;</span>)</div>
 <div class="line"><a id="l00003" name="l00003"></a><span class="lineno">    3</span> </div>
 <div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="keyword">def </span>srcMatchMsg(src, match, msg): </div>

@@ -79,8 +79,8 @@
   * we will leave it as an exercise to not complicate the example (note that `#elif 0` should also be taken into 
   * consideration).
   *
-  * @par 02_comment_if0s\\comment_if0s.py
-  * @include{lineno} 02_comment_if0s/comment_if0s.py
+  * @par 02_comment_if0\\comment_if0.py
+  * @include{lineno} 02_comment_if0/comment_if0.py
   *
   */
  
