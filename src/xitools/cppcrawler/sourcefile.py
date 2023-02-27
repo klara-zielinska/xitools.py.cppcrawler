@@ -33,12 +33,12 @@ _blockStartPat = regex.compile(
 #
 # Currently only Windows files are supported.
 #
-# The line break sequences \<new line> are removed from the code on loading, however their positions are stored.
+# The line break sequences `\<new line>` are removed from the code on loading, however their positions are stored.
 #
 # The code positions taken and returned by public methods are by default positions in the original code. Respectively, 
-# positions operated by internal methods (names starting with _) are the internal positions.
+# positions operated by internal methods (names starting with `_`) are the internal positions.
 # 
-# Some public methods accept the int switch that makes them operate on internal positions when set True.
+# Some public methods accept the int switch that makes them operate on internal positions when set `True`.
 class SourceFile:
 
 	## Default indentation used in code generation.
@@ -55,8 +55,9 @@ class SourceFile:
 	
 
 	##
-	# @param filename  If passed, the file is automaticaly loaded. See SourceFile.load.
-	def __init__(self, filepath=None, encoding="utf-8-sig"):
+	# @param filepath  If passed, the file is automatically loaded. See SourceFile.load.
+	# @param encoding  The encoding.
+	def __init__(self, filepath=None, encoding="utf-8"):
 		if filepath:
 			self.load(filepath, encoding)
 			
@@ -96,7 +97,7 @@ class SourceFile:
 			return pos - 3*n + correct
     
 	
-	## Given an internal scope, possibly tagged, returns the scope with orginal positions.
+	## Given an internal scope, possibly tagged, returns the scope with original positions.
 	def orgScope(self, scope):
 		return (self.orgPos(scope[0]), self.orgPos(scope[1])) + (() if len(scope) == 2 else (scope[2],))
 
@@ -128,7 +129,7 @@ class SourceFile:
 
 	## Returns a piece of the internal code.
 	# 
-	# If start = end = None, the returned string is not copied out.
+	# If `start` = `end` = `None`, the returned string is not copied out.
 	def intCode(self, start=None, end=None, *, int=False):
 		if not int:
 			start = self.intPos(start)
@@ -138,7 +139,7 @@ class SourceFile:
 
 	## Returns a piece of the original code. (Low performance)
 	#
-	# The method is inefficient if file contains \<new line> sequences. Use SourceFile.intCode instead.
+	# The method is inefficient if file contains `\<new line>` sequences. Use SourceFile.intCode instead.
 	def orgCode(self, start=None, end=None, *, int=False):
 		if len(self.__lineJoins) == 0:
 			return self.__code[start:end]
@@ -169,7 +170,7 @@ class SourceFile:
 		return self.orgLocation(pos, int=int)[0]
 
 
-	## Returns the block end position (any { ... }).
+	## Returns the block end position (any `{ ... }`).
 	def blockEnd(self, begin, *, int=False):
 		if int:
 			return self.__blockEnds[begin]
@@ -181,7 +182,7 @@ class SourceFile:
 		return self.__scopes
 
 
-	## Returns a copy of the current search scopes. The scopes are triples (begin, end, tag).
+	## Returns a copy of the current search scopes. The scopes are triples `(begin, end, tag)`.
 	def scopes(self):
 		return [ (self.orgPos(begin), self.orgPos(end), tag) for (begin, end, tag) in self.__scopes ]
 
@@ -215,7 +216,7 @@ class SourceFile:
 		return False
 
 
-	## Checks if a position is in a clipped range - a comment, a string literal or a char literal. 
+	## Checks if a position is in a clipped range -- a comment, a string literal or a char literal. 
 	def isClipped(self, pos, *, int=False):
 		if not int: pos = self.intPos(pos)
 		return self._isClipped(pos)
@@ -243,7 +244,7 @@ class SourceFile:
 
 	## Given a position returns the start position of the line.
 	#
-	# The lines are evaluated after \<new line> removal (e.g., for "int\\\r\nx;" and pos=6 the result is 0)
+	# The lines are evaluated after `\<new line>` removal (e.g., for `"int\\\r\nx;"` and `pos=6` the result is `0`)
 	def lineStart(self, pos):
 		ln = self.intLineNo(self.intPos(pos))
 		return self.orgPos(0 if ln == 1 else self.__lineEnds[ln - 2])
@@ -282,9 +283,10 @@ class SourceFile:
 
 	## Saves the source in a given location.
 	#
-	# The sequences \<new line> are reincorporated in the saved file.
+	# The sequences `\<new line>` are reincorporated in the saved file.
 	#
-	# @param encoding   If None, the encoding passed when on loading is used (see SourceFile.load).
+	# @param filepath   Path to save.
+	# @param encoding   If `None`, the encoding passed when on loading is used (see SourceFile.load).
 	# @param backupDir  If set and the file already exists, a backup of it will be saved in this location.
 	# @param force      If the file already exists, this flag confirms if it should be overwritten.
 	def saveAs(self, filepath, encoding=None, *, backupDir=None, force=False):
@@ -311,12 +313,12 @@ class SourceFile:
 			return None
 
 
-	## Creates a regex.Pattern to be use in methods that can skip blocks.
+	## Creates a `regex.Pattern` to be use in methods that can skip blocks.
 	def makeSkipBlocksPat(re):
 		return regex.compile(re + r"|(?P<__cppcr_sbo>\{)")
 
 
-	## Checks if a regex.Pattern is properly formed to be used in methods that can skip blocks.
+	## Checks if a `regex.Pattern` is properly formed to be used in methods that can skip blocks.
 	def checkSkipBlocksPat(pat):
 		return pat.pattern.endswith(r"|(?P<__cppcr_sbo>\{)")
 	
@@ -403,7 +405,7 @@ class SourceFile:
 				return mres
 
 	##			
-	# @param pat  Has to be prepared with makeSkipBlocksPat or be equivalent.
+	# @param pat  Has to be prepared with SourceFile.makeSkipBlocksPat or be equivalent.
 	def _findPatUnscoped_SkipBlocks(self, pat, start, end=None, excludeClips=True):
 		while mres := pat.search(self.__code, start, end):
 			if mres.group("__cppcr_sbo"):
@@ -426,16 +428,16 @@ class SourceFile:
 		return next(self._findAllPat_SkipBlocks(pat, excludeClips, scopeTag), None)
 		
 
-	## Finds the first occurence of a pattern in the search scopes.
+	## Finds the first occurrence of a pattern in the search scopes.
 	#
-	# @param pat  Regular expression - can be from re or from its extension regex module - or a regular expression 
-	#		      compiled with regex.compile. If skipBlocks=True, it has to be prepared with 
+	# @param pat  Regular expression -- can be from re or from its extension `regex` module -- or a regular expression 
+	#		      compiled with `regex.compile`. If `skipBlocks=True`, it has to be prepared with 
 	#             SourceFile.makeSkipBlocksPat or be equivalent.
-	# @param skipBlocks    If True, excludes blocks (any { ... }) that start in the examined scopes from the search.
-	# @param scopeTag      If True, a pair (SourceRegexMatch, tag) is returned, where tag is the tag of the scope 
-	#                      where the occurrence was found.
-	# @param excludeClips  If True, clipped ranges are excluded from the search (see SourceFile.isClipped).
-	# @return     Depending on scopeTag either SourceRegexMatch, or (SourceRegexMatch, tag), or None.
+	# @param skipBlocks  If `True`, excludes blocks (any `{ ... }`) that start in the examined scopes from the search.
+	# @param scopeTag      If `True`, a pair `(`@ref SourceRegexMatch `, tag)` is returned, where tag is the tag of 
+	#                      the scope where the occurrence was found.
+	# @param excludeClips  If `True`, clipped ranges are excluded from the search (see SourceFile.isClipped).
+	# @return     Depending on scopeTag either SourceRegexMatch, or `(`@ref SourceRegexMatch `, tag)`, or `None`.
 	#
 	# @remark  By exclusion we mean that a match cannot start in a given range, however it can start before and 
 	#          overlap it.
@@ -455,7 +457,7 @@ class SourceFile:
 			return sm.SourceRegexMatch(self, timres)
 			
 		
-	## Finds all occurences of a pattern in the search scopes.
+	## Finds all occurrences of a pattern in the search scopes.
 	#
 	# Returns a generator. See SourceFile.find for more details.
 	def findAll(self, pat, *, skipBlocks=False, scopeTag=False, excludeClips=True):
@@ -480,7 +482,7 @@ class SourceFile:
 
 	## Matches the source against a regular expression ignoring the search scopes.
 	#
-	# The matched range is specified with the start, end parameters. See SourceFile.find for more details.
+	# The matched range is specified with the `start`, `end` parameters. See SourceFile.find for more details.
 	def matchUnscoped(self, pat, start, end=None, *, excludeClips=True):
 		if start is None: start = 0
 		if type(pat) is not regex.Pattern:
@@ -504,7 +506,7 @@ class SourceFile:
 
 	## Finds the first occurrence of a pattern ignoring the search scopes.
 	#
-	# The searched range is specified with the start, end parameters. See SourceFile.find for more details.
+	# The searched range is specified with the `start`, `end` parameters. See SourceFile.find for more details.
 	def findUnscoped(self, pat, start=None, end=None, *, skipBlocks=False, excludeClips=True):
 		if type(pat) is not regex.Pattern:
 			pat = SourceFile.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
@@ -520,7 +522,7 @@ class SourceFile:
 			
 	## Finds all occurrences of a pattern ignoring the search scopes.
 	#
-	# The searched range is specified with the start, end parameters. See SourceFile.find for more details.
+	# The searched range is specified with the `start`, `end` parameters. See SourceFile.find for more details.
 	def findAllUnscoped(self, pat, start=None, end=None, *, skipBlocks=False, excludeClips=True):
 		if type(pat) is not regex.Pattern:
 			pat = SourceFile.makeSkipBlocksPat(pat) if skipBlocks else regex.compile(pat)
@@ -538,9 +540,9 @@ class SourceFile:
 
 	## Replaces matches in the source.
 	#
-	# @param tmatches  List of @ref SourceMatche or pairs `(` @ref SourceMatch `, tag)` -- `tag` can be anything.
-	#                  The matches cannot overlap -- the result unspecifed.
-	# @param repl      Replacement - a string or a function accepting either a @ref SourceMatche or 
+	# @param tmatches  List of @ref SourceMatch or pairs `(` @ref SourceMatch `, tag)` -- `tag` can be anything.
+	#                  The matches cannot overlap -- the result unspecified.
+	# @param repl      Replacement - a string or a function accepting either a @ref SourceMatch or 
 	#                  `(` @ref SourceMatch `, tag)`, depending on the type of tmatches, and returning a string. The 
 	#                  string cannot contain sequences `\<new line>`.
 	# @param sorted    If `True`, tmatches are assumed to be sorted with respect to the position. Otherwise tmatches 
@@ -580,21 +582,21 @@ class SourceFile:
 		self.replaceMatches([match], repl)
 
 
-	## Abbreviation that creates a SourceRangeMatch and calls SourceFile.replaceMatch with it.
+	## Abbreviation that creates a @ref SourceRangeMatch and calls SourceFile.replaceMatch with it.
 	def replaceRange(self, start, end, repl):
 		self.replaceMatch(sm.SourceRangeMatch(self, (start, end)), repl)
 
 
 	## Replace occurrences of a pattern in the source.
 	#
-	# @param pat    Regular expression - can be from re or from its extension regex module - or a regular expression 
-	#		        compiled with regex.compile. If skipBlocks=True, it has to be prepared with 
+	# @param pat    Regular expression -- can be from re or from its extension `regex` module -- or a regular 
+	#		        expression compiled with `regex.compile`. If `skipBlocks=True`, it has to be prepared with 
 	#               SourceFile.makeSkipBlocksPat or be equivalent.
-	# @param repl   Replacement - a string or a function taking SourceMatche and returning a string. The string cannot 
-	#               contain sequences \<new line>. Currently there is no support for tags.
-	# @param count  Limit of performed replacements - 0 means no limit.
-	# @param excludeClips  If True, clipped ranges are excluded from the search (see SourceFile.isClipped).
-	# @return       The number of performed replacements.
+	# @param repl   Replacement -- a string or a function taking @ref SourceMatch and returning a string. The string 
+	#               cannot contain sequences `\<new line>`. Currently there is no support for tags.
+	# @param count  Limit of performed replacements -- `0` means no limit.
+	# @param excludeClips  If `True`, clipped ranges are excluded from the search (see SourceFile.isClipped).
+	# @return              The number of performed replacements.
 	def replace(self, pat, repl, count=0, *, excludeClips=True):
 		if type(pat) is not regex.Pattern:
 			pat = regex.compile(pat)
@@ -624,24 +626,26 @@ class SourceFile:
 		return replaced
 
 
-	## Inserts code in the given position - abbreviation of SourceFile.replaceRange applied to pos, pos.
+	## Inserts code in the given position -- abbreviation of SourceFile.replaceRange applied to `pos`, `pos`.
 	def insert(self, pos, code):
 		self.replaceRange(pos, pos, code)
 
 	
-	## Tries to set the search scope to the body of a class, a struct or a collection of either.
+	## Tries to set the search scope to the body of a `class`, `struct`, `union` or a collection of either.
 	#
-	# If the method succeed, the tags of the new scopes are tuples (kind, name) or (kind, name, tag), where kind 
-	# is either "class", "struct" or "unit", name is the name and tag is the tag of the scope that was searched.
+	# If the method succeed, the tags of the new scopes are tuples `(kind, name)` or `(kind, name, tag)`, where 
+	# `kind` is either `"class"`, "struct" or `"union"`, `name` is the name and `tag` is the tag of the scope that 
+	# was searched.
 	#
-	# @param kind    Either "class", "struct" or "union", or any combination of these separated with `|`, or 
-	#                `"*"` (any).
+	# @param kind    Either `"class"`, `"struct"` or `"union"`, or any combination of these separated with `|`; or 
+	#                `"*"` -- any.
 	# @param name    String or regular expression.
-	# @param scopes  If present, the search is performed in the given <scope> collection, where <scope> is a tuple
-    #                (begin, end) or (begin, end, tag), begin, end are positions in the code and tag is anything.
-	# @param skipBlocks  If True, excludes blocks (any { ... }) that start in the examined scopes from the search.
-	# @param scopeTag    If True, the new scopes contain the tag part.
-	# @return  True if the scopes were set, otherwise False.
+	# @param scopes  If present, the search is performed in the given *<scope>* collection, where *<scope>* is 
+    #                a tuple `(begin, end)` or `(begin, end, tag)`, `begin`, `end` are positions in the code 
+	#                and `tag` is anything.
+	# @param skipBlocks  If `True`, excludes blocks (any `{ ... }`) that start in the examined scopes from the search.
+	# @param scopeTag    If `True`, the new scopes contain the tag part.
+	# @return  `True` if the scopes were set, otherwise `False`.
 	def tryScopeToClassBody(self, kind, name, scopes=None, *, skipBlocks=True, scopeTag=False):
 		assert kind == "*" or not [True for k in kind.split("|") if k not in ["class", "struct", "union"]]
 		if kind == "*": kind = "class|struct|union"
@@ -699,13 +703,14 @@ class SourceFile:
 
 	## Tries to set the search scope to the body of blocks preceded with the given prefix.
 	#
-	# @param prefixRe  Regular expression that specifies the prefix. It has to match all characters before {.
-	# @param scopes    If present, the search is performed in the given <scope> collection, where <scope> is a tuple
-    #                  (begin, end) or (begin, end, tag), begin, end are positions in the code and tag is anything.
-	# @param tagFunc   Function that takes a SourceMatch matching the prefix and a possibly tagged scope where the
-	#                  match occurred, and returns the tag for the new scope.
-	# @param skipBlocks  If True, excludes blocks (any { ... }) that start in the examined scopes from the search.
-	# @return  True if the scopes were set, otherwise False.
+	# @param prefixRe  Regular expression that specifies the prefix. It has to match all characters before `{`.
+	# @param scopes    If present, the search is performed in the given *<scope>* collection, where *<scope>* 
+    #                  is a tuple `(begin, end)` or `(begin, end, tag)`, `begin`, `end` are positions in the code 
+	#                  and `tag` is anything.
+	# @param tagFunc   Function that takes a @ref SourceMatch matching the prefix and a possibly tagged scope where 
+	#                  the match occurred, and returns the tag for the new scope.
+	# @param skipBlocks  If `True`, excludes blocks (any `{ ... }`) that start in the examined scopes from the search.
+	# @return  `True` if the scopes were set, otherwise False.
 	def tryScopeToBlockByPrefix(self, prefixRe, scopes=None, *, skipBlocks=True, tagFunc=(lambda _, __: None)):
 		if scopes:
 			oldScopes = self.__scopes
@@ -742,7 +747,7 @@ class SourceFile:
 	## Returns the position for inserting a single line prefix in a block and the spacing that should be added around.
 	#
 	# @param begin  Valid position of a block beginning.
-	# @param int    If True, the positions are internal.
+	# @param int    If `True`, the positions are internal.
 	# @return       Triple `(hdspace, position, tlspace)`, where `position` is the position to insert and `hdspace`, 
 	#               `tlspace` are spacing that should be added in front and behind to preserve the indentation.
 	def blockSPrefixInsertPos(self, begin, *, int=False):

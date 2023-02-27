@@ -7,9 +7,10 @@ import os
 
 
 ## Dictionary class that stores @ref SourceMatch for further processing.
+#  @anchor SourceMatchDict
 #
 # It inherits from `dict` where keys are @ref SourceFile and values are lists of either @ref SourceMatch or pairs 
-# `(` @ref SourceMatch `, tag)` -- `tag` may be anything. The lists are ordered as inserted.
+# `(`@ref SourceMatch `, tag)` -- `tag` may be anything. The lists are ordered as inserted.
 #
 # A user is obligated to maintain the order in value lists if he manipulates them directly. For safe insertion see
 # SourceMatchDict.insert.
@@ -17,15 +18,15 @@ class SourceMatchDict(dict):
 
     ## Contains information about missed searches in the form of a dictionary from @ref SourceFile to either pairs 
     # `(None, tag)` or `None` values -- depending on the tagging. Each item corresponds to one miss. This approach is 
-    # chosen to allow proccessing uniformely with other items in the main dictionary (one can use the same
+    # chosen to allow processing uniformly with other items in the main dictionary (one can use the same
     # function to iterate over them). 
     missing = None
 
 
     ##
-    # @param other   Dictionary to be copied. May be SourceMatchDict or other dictionary with te same structure. In the
-    #                latter case the it cannot contain key `None`.
-    # @param tagged  Determinies if matches should contain tags. If `None`, it is determined upon `other`.
+    # @param other   Dictionary to be copied. May be SourceMatchDict or other dictionary with the same structure. 
+    #                In the latter case the it cannot contain key `None`.
+    # @param tagged  Determines if matches should contain tags. If `None`, it is determined upon `other`.
     # @param sourceDir  The source directory -- used to determine relative paths.
     def __init__(self, other={}, *, tagged=None, sourceDir=None):
         super(SourceMatchDict, self).__init__()
@@ -109,7 +110,7 @@ class SourceMatchDict(dict):
     ## Inserts a match (preserves the matches order).
     #
     # @param src     The @ref SourceFile.
-    # @param tmatch  @ref SourceMatch or pair `(` @ref SourceMatch `, tag)`. If the match is `None`, `tmatch` is
+    # @param tmatch  @ref SourceMatch or pair `(`@ref SourceMatch `, tag)`. If the match is `None`, `tmatch` is
     #                appended in the `None` key in the `src` subkey.
     def insert(self, src, tmatch):
         assert not self.__tagged or type(tmatch) is tuple and len(tmatch) == 2
@@ -183,7 +184,7 @@ class SourceMatchDict(dict):
 
     ## Determines if a dictionary is tagged.
     #
-    # @param d  SourceMatchDict or a non-empty `{` @ref SourceFile `: <tmatch> list }` where `<tmatch>` is a possibly 
+    # @param d  SourceMatchDict or a non-empty `{`@ref SourceFile `: <tmatch> list }` where `<tmatch>` is a possibly 
     #           tagged @ref SourceMatch.
     def isDictTagged(d):
         if type(d) is SourceMatchDict:

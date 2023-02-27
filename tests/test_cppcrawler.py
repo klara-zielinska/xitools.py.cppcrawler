@@ -152,10 +152,10 @@ class CppCrawlerTests(TestCase):
         crawler = CppCrawler(dataFilepath("civ"))
         
 
-        res = crawler.find([], "*.h", tagResult=False)
+        res = crawler.find([], "*.h", tagFilter="p")
         self.assertEqual(res.missing, {})
         self.assertEqual(res, {})
-        self.assertEqual(res.isTagged(), False)
+        self.assertEqual(res.isTagged(), True)
 
 
         res = crawler.find([ "algo_functor" ], "*.h")
@@ -237,42 +237,50 @@ class CppCrawlerTests(TestCase):
         res = crawler.find([ ("struct|class", "cs"), ("template", "tm") ], 
                            { "algorithm2.h" : [(1598, None, "a1"), (5581, None, "a2")], 
                              "CvUnitSort.h" : [(None, None, "cus")] },
-                           perScope=True, 
-                           tagFunc = lambda mres, tpat, scope: tpat[1] + scope[2] + "_" + str(mres and mres.start()))
-        self.assertEqual(testMapSMD(lambda tmres: tmres[1], res.missing),  
-                         { dataFilepath("civ", "CvUnitSort.h") : ["tmcus_None"] })
-        self.assertEqual(testMapSMD(lambda tmres: tmres[1], res), 
-            { dataFilepath("civ", "CvUnitSort.h") : ["cscus_361"],
-              dataFilepath("civ", "algorithm2.h") : ["tma1_1600", "csa1_1611", 
-                                                     "tma2_5584", "csa2_5595"] })
-        
-        
-        res = crawler.find([ "struct|class", "template" ], 
-                           { "algorithm2.h" : [(1598, None), (5581, None)], 
-                             "CvUnitSort.h" : [(None, None)] },
-                           perScope=True, 
-                           tagResult=True)
-        self.assertEqual(testMapSMD(lambda tmres: tmres[1], res.missing),
-                         { dataFilepath("civ", "CvUnitSort.h") : [None] })
+                           perScope=True,
+                           tagFilter="p")
+        self.assertEqual(testMapSMD(lambda tmres: tmres[1], res.missing), 
+                         { dataFilepath("civ", "CvUnitSort.h") : [ "tm" ] })
         self.assertEqual(testMapSMD(lambda tmres: (tmres[0].start(), tmres[1]), res), 
-            { dataFilepath("civ", "CvUnitSort.h") : [(361, None)],
-              dataFilepath("civ", "algorithm2.h") : [(1600, None), (1611, None), 
-                                                     (5584, None), (5595, None)] })
+            { dataFilepath("civ", "CvUnitSort.h") : [(361, "cs")],
+              dataFilepath("civ", "algorithm2.h") : [(1600, "tm"), (1611, "cs"),
+                                                     (5584, "tm"), (5595, "cs")] })
+        
+        
+        res = crawler.find([ ("struct|class", "cs"), ("template", "tm") ], 
+                           { "algorithm2.h" : [(1598, None, "a1"), (5581, None, "a2")], 
+                             "CvUnitSort.h" : [(None, None, "cus")] },
+                           perScope=True,
+                           tagFilter="s")
+        self.assertEqual(testMapSMD(lambda tmres: tmres[1], res.missing), 
+                         { dataFilepath("civ", "CvUnitSort.h") : [ "cus" ] })
+        self.assertEqual(testMapSMD(lambda tmres: (tmres[0].start(), tmres[1]), res), 
+            { dataFilepath("civ", "CvUnitSort.h") : [(361, "cus")],
+              dataFilepath("civ", "algorithm2.h") : [(1600, "a1"), (1611, "a1"),
+                                                     (5584, "a2"), (5595, "a2")] })
+        
+        
+        res = crawler.find([ ("struct|class", "cs"), ("template", "tm") ], 
+                           { "algorithm2.h" : [(1598, None, "a1"), (5581, None, "a2")], 
+                             "CvUnitSort.h" : [(None, None, "cus")] },
+                           perScope=True,
+                           tagFilter="")
+        self.assertEqual(testMapSMD(lambda tmres: tmres, res.missing), 
+                         { dataFilepath("civ", "CvUnitSort.h") : [ None ] })
+        self.assertEqual(testMapSMD(lambda tmres: tmres.start(), res), 
+            { dataFilepath("civ", "CvUnitSort.h") : [361],
+              dataFilepath("civ", "algorithm2.h") : [1600, 1611, 5584, 5595] })
         
         
         res = crawler.find([ "struct|class", "template" ], 
                            { "algorithm2.h" : [(1598, None), (5581, None)], 
                              "CvUnitSort.h" : [(None, None)] },
-                           perScope=True, 
-                           tagResult=True,
-                           tagFunc = lambda mres, tpat, scope: 
-                                         tpat.pattern + str(scope) + "_" + str(mres and mres.start()))
-        self.assertEqual(testMapSMD(lambda tmres: tmres[1], res.missing),
-                         { dataFilepath("civ", "CvUnitSort.h") : ["template(None, None)_None"] })
-        self.assertEqual(testMapSMD(lambda tmres: tmres[1], res), 
-            { dataFilepath("civ", "CvUnitSort.h") : ["struct|class(None, None)_361"],
-              dataFilepath("civ", "algorithm2.h") : ["template(1598, None)_1600", "struct|class(1598, None)_1611", 
-                                                     "template(5581, None)_5584", "struct|class(5581, None)_5595"] })
+                           perScope=True)
+        self.assertEqual(testMapSMD(lambda tmres: tmres, res.missing),
+                         { dataFilepath("civ", "CvUnitSort.h") : [None] })
+        self.assertEqual(testMapSMD(lambda tmres: tmres.start(), res), 
+            { dataFilepath("civ", "CvUnitSort.h") : [361],
+              dataFilepath("civ", "algorithm2.h") : [1600, 1611, 5584, 5595] })
         
         
         res = crawler.find([ ("getUnitValue", "g") ], 
@@ -287,7 +295,7 @@ class CppCrawlerTests(TestCase):
         crawler = CppCrawler(dataFilepath("civ"))
         
 
-        res = crawler.findAll([], "*.h", tagResult=True)
+        res = crawler.findAll([], "*.h", tagFilter="p")
         self.assertEqual(res.missing, {})
         self.assertEqual(res, {})
         self.assertEqual(res.isTagged(), True)
@@ -368,15 +376,35 @@ class CppCrawlerTests(TestCase):
         
         
         res = crawler.findAll([ ("struct|class", "cs"), ("template", "tm") ], 
-                              { "algorithm2.h" : [(1598, 1640, "a1"), (5581, 5610, "a2")], 
-                                "CvUnitSort.h" : [(None, 400, "cus")] },
-                              tagFunc = lambda mres, tpat, scope: tpat[1] + scope[2] + "_" + str(mres and mres.start()))
+                              { "algorithm2.h" : [(1598, 1627, "a1"), (5581, 5595, "a2")], 
+                                "CvUnitSort.h" : [(None, 375, "cus")] },
+                              tagFilter="p")
         self.assertEqual(res.missing, {})
-        self.assertEqual(testMapSMD(lambda tmres: tmres[1], res), 
-            { dataFilepath("civ", "CvUnitSort.h") : ["cscus_361", "cscus_376"],
-              dataFilepath("civ", "algorithm2.h") : ["tma1_1600", "csa1_1611", 
-                                                     "csa1_1627", "tma2_5584", 
-                                                     "csa2_5595"] })
+        self.assertEqual(testMapSMD(lambda tmres: (tmres[0].start(), tmres[1]), res), 
+            { dataFilepath("civ", "CvUnitSort.h") : [(361, "cs")],
+              dataFilepath("civ", "algorithm2.h") : [(1600, "tm"), (1611, "cs"), 
+                                                     (5584, "tm")] })
+        
+        
+        res = crawler.findAll([ ("struct|class", "cs"), ("template", "tm") ], 
+                              { "algorithm2.h" : [(1598, 1627, "a1"), (5581, 5595, "a2")], 
+                                "CvUnitSort.h" : [(None, 375, "cus")] },
+                              tagFilter="s")
+        self.assertEqual(res.missing, {})
+        self.assertEqual(testMapSMD(lambda tmres: (tmres[0].start(), tmres[1]), res), 
+            { dataFilepath("civ", "CvUnitSort.h") : [(361, "cus")],
+              dataFilepath("civ", "algorithm2.h") : [(1600, "a1"), (1611, "a1"), 
+                                                     (5584, "a2")] })
+        
+        
+        res = crawler.findAll([ ("struct|class", "cs"), ("template", "tm") ], 
+                              { "algorithm2.h" : [(1598, 1627, "a1"), (5581, 5595, "a2")], 
+                                "CvUnitSort.h" : [(None, 375, "cus")] },
+                              tagFilter="")
+        self.assertEqual(res.missing, {})
+        self.assertEqual(testMapSMD(lambda tmres: tmres.start(), res), 
+            { dataFilepath("civ", "CvUnitSort.h") : [361],
+              dataFilepath("civ", "algorithm2.h") : [1600, 1611, 5584] })
         
 
     def test_replaceSourceMatches(self):

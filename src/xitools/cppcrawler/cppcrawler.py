@@ -9,6 +9,7 @@ import os
 
 
 ## Class for processing C++ source files.
+#  @anchor CppCrawler
 class CppCrawler:
     __sourceDir = None
     __backupDir = None
@@ -18,7 +19,7 @@ class CppCrawler:
     # @param sourceDir  Root source directory.
     # @param encoding   Default encoding.
     # @param backupDir  Source backup directory.
-    def __init__(self, sourceDir, encoding="utf-8-sig", *, backupDir=None):
+    def __init__(self, sourceDir, encoding="utf-8", *, backupDir=None):
         assert os.path.isdir(sourceDir)
         if backupDir:
             backupDir = os.path.abspath(backupDir)
@@ -55,18 +56,18 @@ class CppCrawler:
         return [ os.path.join(self.__backupDir, dir) for dir in buckets ]
 
 
-    ## Given a path or a SourceFile returns the path relative to the source directory.
+    ## Given a path or a @ref SourceFile returns the path relative to the source directory.
     def sourceRelPath(self, file):
         if isinstance(file, SourceFile): file = file.filepath()
         return os.path.relpath(file, self.__sourceDir)
 
         
-    ## Returns the list of files that match the path rooting from the source directory. Uses glob.
+    ## Returns the list of files that match the path rooting from the source directory. Uses `glob`.
     def listSourceFiles(self, path):
         return glob(path, root_dir=self.__sourceDir, recursive=True)
 
 
-    ## Loads and returns the source from the source directory as a SourceFile.
+    ## Loads and returns the source from the source directory as a @ref SourceFile.
     #
     # If encoding=None, the crawler's is used.
     def loadSourceFile(self, filepath, encoding=None):
@@ -86,13 +87,13 @@ class CppCrawler:
     #
     # No namespace support.
     #
-    # @param prots       Collection of method/function prototypes in the normal form (cf. Syntax module).
-    # @param sources     Sources to search. A glob file path (e.g., "*.h"), a SourceFile, or a list of either.
+    # @param prots       Collection of method/function prototypes in the normal form (see @ref Syntax).
+    # @param sources     Sources to search. A `glob` file path (e.g., `"*.h"`), a @ref SourceFile, or a list of either.
     # @param returnType  Type of the returned value:
-    # * 's' - SourceMatchDict with prototypes being tags,
-    # * 'c' - dictionary { 'class name' : list[( 'prototype', (SourceFile, SourceMatch)|None )] }, 
-    # * 'l' - list[ ( 'prototype', (SourceFile, SourceMatch)|None ) ].
-    # @return  Collection of matches. Matches align to found prototypes - e.g., fooBar( int i ).
+    # * `'s'` - @ref SourceMatchDict with prototypes being tags,
+    # * `'c'` - dictionary `{ <class name> : list[( <prototype>, (`@ref SourceFile `, `@ref SourceMatch `)|None )] }`, 
+    # * `'l'` - list `[ ( <prototype>, (`(`@ref SourceFile `, `@ref SourceMatch `)|None ) ]`.
+    # @return  Collection of matches aligned with prototypes.
     def findMethDeclarations(self, prots, sources, *, returnType='s'):
         protDict = CppCrawler.__makeMethProtsDict(prots)
 
@@ -154,9 +155,9 @@ class CppCrawler:
     #
     # No namespace support.
     #
-    # @param sources  Sources to search. A glob file path (e.g., "*.h"), a SourceFile, or a list of either.
-    # @return         SourceMatchDict with prototypes being tags, where matches align to found prototypes - e.g., 
-    #                 fooBar( int i ).
+    # @param prots    Collection of method/function prototypes in the normal form (see @ref Syntax).
+    # @param sources  Sources to search. A `glob` file path (e.g., `"*.h"`), a @ref SourceFile, or a list of either.
+    # @return         @ref SourceMatchDict with tags being prototypes.
     def findMethSepDefinitions(self, prots, sources):
         protReList = CppCrawler.__makeMethProtList(prots)
         
@@ -178,48 +179,49 @@ class CppCrawler:
 
     ## Finds one occurrence of each given pattern in sources.
     #
-    # @param tpats    List of regex patterns or pairs (pattern, tag).
-    # @param sources  Sources to be searched. A <source>, a collection of <source>, or a dict 
-    #                 { <source> : <scope> collection }, where <source> is a path or a SourceFile, <scope> is a tuple
-    #                 (begin, end) or (begin, end, tag), begin, end are positions in the file and tag is anything. The
-    #                 dict can be a SourceScopeDict.
-    # @param skipBlocks  If True, excludes blocks (any { ... }) that start in the examined scopes from the search.
-    # @param perScope    If True, finds an occurence for each pattern in each given scope.
-    # @param tagResult   Controls if the returned SourceMatchDict is tagged. Tags are evaluated by tagFunc.
-    # @param tagFunc     Function that returns a tag for a result match. The first argument is a pattern that was 
-    #                    matched or a pair (pattern, tag) - depending on the type of tpats. The second is a scope in 
-    #                    which the match occurred - either (begin, end) or (begin, end, tag). If scopes were not given,
-    #                    the default (None, None) is passed.
-    # @return         A SourceMatchDict of results. Missing patterns are presented in 2 ways. If perScope=True, there 
-    #                 is an entry for each missing pattern under the corresponding source key, otherwise the entry is
-    #                 placed under the key None. If tagResult=True, the entries are pairs (None, tag), otherwise they 
-    #                 are None-s. This approach is used to allow a uniform iteration over all elements in the dict.
-    def find(self, tpats, sources, *, skipBlocks=False, perScope=False, tagResult=None, tagFunc=None):
+    # @param tpats    List of `regex` patterns or pairs `(pattern, tag)`.
+    # @param sources  Sources to be searched. A *<source>*, a collection of *<source>*, or a `dict` 
+    #                 `{ <source> : <scope> collection }`, where *<source>* is a path or a @ref SourceFile, 
+    #                 *<scope>* is a tuple `(begin, end)` or `(begin, end, tag)`, `begin`, `end` are positions 
+    #                 in the file and `tag` is anything. The `dict` can be a @ref SourceScopeDict.
+    # @param skipBlocks  If `True`, excludes blocks (any `{ ... }`) that start in the examined scopes from the search.
+    # @param perScope    If `True`, finds an occurrence for each pattern in each given scope.
+    # @param tagFilter   Substring of `"ps"` or `None`. `"p"` - include pattern tag, `"s"` - include scope tag, 
+    #                    `None` - auto detect from `tpats`, `sources`.
+    # @return  @ref SourceMatchDict of results. Missing patterns are stored in the SourceMatchDict.missing. 
+    #          If `perScope=True`, there is an entry for each missing pattern under the corresponding source key, 
+    #          otherwise the entry is placed under the key `None`.
+    def find(self, tpats, sources, *, skipBlocks=False, perScope=False, tagFilter=None):
         srcScopeDict = self.__find_makeSourceScopeDict(sources)
         scopesTagged = srcScopeDict and len(next(iter(srcScopeDict.values()))[0][0]) == 3 # check len of first scope
 
         if not tpats:
-            return SourceMatchDict(tagged=tagResult is None and scopesTagged or tagResult)
+            return SourceMatchDict(tagged=(tagFilter is not None or tagFilter is None and scopesTagged))
         elif type(tpats) is not list:
             tpats = [tpats]
 
         tpatsTagged = type(tpats[0]) is tuple
-        if tagResult is None: tagResult = tpatsTagged or scopesTagged 
+        if tagFilter is None: 
+            tagFilter = (tpatsTagged and "p" or "") + (scopesTagged and "s" or "")
+        else:
+            assert (tagFilter in "ps" and
+                    (not ("p" in tagFilter) or tpatsTagged) and
+                    (not ("s" in tagFilter) or scopesTagged))
 
         if tpatsTagged:
             def tpatPat(tpat): return tpat[0]
-            if not tagFunc:
-                if scopesTagged: tagFunc = CppCrawler.__defaultTagFuncTT
-                else:            tagFunc = CppCrawler.__defaultTagFuncTN
         else:
             def tpatPat(tpat): return tpat
-            if not tagFunc:
-                if scopesTagged: tagFunc = CppCrawler.__defaultTagFuncNT
-                else:            tagFunc = CppCrawler.__defaultTagFuncNN
-        if tagResult: 
-            def tagMres(mres, tpat, scope): return (mres, tagFunc(mres, tpat, scope))
-        else:
-            def tagMres(mres, tpat, scope): return mres
+            
+        match tagFilter: 
+            case "ps":
+                def tagMres(mres, tpat, scope): return (mres, (tpat[1], scope[2]))
+            case "p":
+                def tagMres(mres, tpat, scope): return (mres, tpat[1])
+            case "s":
+                def tagMres(mres, tpat, scope): return (mres, scope[2])
+            case "":
+                def tagMres(mres, tpat, scope): return mres
 
         makePat = SourceFile.makeSkipBlocksPat if skipBlocks else regex.compile
         if tpatsTagged: 
@@ -227,7 +229,7 @@ class CppCrawler:
         else:
             tpats = list(map(makePat, tpats))
             
-        d = SourceMatchDict(tagged=tagResult)
+        d = SourceMatchDict(tagged=(tagFilter != ""))
         patsFound = [False] * len(tpats)
 
         for src in srcScopeDict:
@@ -249,22 +251,6 @@ class CppCrawler:
             if missings: d.missing[None] = missings
 
         return d
-    
-
-    def __defaultTagFuncTT(mres, tpat, scope):
-        return (tpat[1], scope[2])
-
-
-    def __defaultTagFuncTN(mres, tpat, scope):
-        return tpat[1]
-
-
-    def __defaultTagFuncNT(mres, tpat, scope):
-        return scope[2]
-
-
-    def __defaultTagFuncNN(mres, tpat, scope):
-        return None
 
 
     def __find_makeSourceScopeDict(self, sources):
@@ -284,32 +270,37 @@ class CppCrawler:
     ## Finds all occurrences of the given patterns in sources.
     #
     # See the description of CppCrawler.find.
-    def findAll(self, tpats, sources, *, tagResult=None, skipBlocks=False, tagFunc=None):
+    def findAll(self, tpats, sources, *, skipBlocks=False, tagFilter=None):
         srcScopeDict = self.__find_makeSourceScopeDict(sources)
         scopesTagged = srcScopeDict and len(next(iter(srcScopeDict.values()))[0][0]) == 3 # check len of first scope
 
         if not tpats:
-            return SourceMatchDict(tagged=tagResult is None and scopesTagged or tagResult)
+            return SourceMatchDict(tagged=(tagFilter is not None or tagFilter is None and scopesTagged))
         elif type(tpats) is not list:
             tpats = [tpats]
 
         tpatsTagged = type(tpats[0]) is tuple
-        if tagResult is None: tagResult = tpatsTagged or scopesTagged 
+        if tagFilter is None: 
+            tagFilter = (tpatsTagged and "p" or "") + (scopesTagged and "s" or "")
+        else:
+            assert (tagFilter in "ps" and
+                    (not ("p" in tagFilter) or tpatsTagged) and
+                    (not ("s" in tagFilter) or scopesTagged))
 
         if tpatsTagged:
             def tpatPat(tpat): return tpat[0]
-            if not tagFunc:
-                if scopesTagged: tagFunc = CppCrawler.__defaultTagFuncTT
-                else:            tagFunc = CppCrawler.__defaultTagFuncTN
         else:
             def tpatPat(tpat): return tpat
-            if not tagFunc:
-                if scopesTagged: tagFunc = CppCrawler.__defaultTagFuncNT
-                else:            tagFunc = CppCrawler.__defaultTagFuncNN
-        if tagResult: 
-            def tagMres(mres, tpat, scope): return (mres, tagFunc(mres, tpat, scope))
-        else:
-            def tagMres(mres, tpat, scope): return mres
+            
+        match tagFilter: 
+            case "ps":
+                def tagMres(mres, tpat, scope): return (mres, (tpat[1], scope[2]))
+            case "p":
+                def tagMres(mres, tpat, scope): return (mres, tpat[1])
+            case "s":
+                def tagMres(mres, tpat, scope): return (mres, scope[2])
+            case "":
+                def tagMres(mres, tpat, scope): return mres
 
         makePat = SourceFile.makeSkipBlocksPat if skipBlocks else regex.compile
         if tpatsTagged: 
@@ -317,7 +308,7 @@ class CppCrawler:
         else:
             tpats = list(map(makePat, tpats))
             
-        d = SourceMatchDict(tagged=tagResult)
+        d = SourceMatchDict(tagged=(tagFilter != ""))
         patsFound = [False] * len(tpats)
 
         for src in srcScopeDict:
@@ -337,7 +328,7 @@ class CppCrawler:
         return d
 
     
-    ## Replace all matches in a SourceMatchDict.
+    ## Replace all matches in a @ref SourceMatchDict.
     # 
     # See SourceFile.replaceMatches.
     def replaceSourceMatches(self, mdict, repl):
@@ -346,7 +337,7 @@ class CppCrawler:
             src.replaceMatches(mdict[src], repl, sorted=True)
 
 
-    ## Saves a collection of SourceFile-s.
+    ## Saves a collection of @ref SourceFile.
     #
     # Creates copies of the overwritten files a new bucket in the backup directory (see CppCrawler.backupBucketDirs). 
     def saveSources(self, sources, encoding=None):

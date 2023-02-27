@@ -10,22 +10,23 @@ _charRe     = r"'(?:[^'\\\n]|\\.)*'"
 _charPat    = regex.compile(_charRe)
 _clipRe     = f"{_commentRe}|{_stringRe}|{_charRe}"
 _clipPat    = regex.compile(_clipRe)
-_idRe = r"\b\w+\b"
+
 __  = f"(?:\\s|{_commentRe})"
 ___ = f"{__}*+"
-_optValRe   = f"{_stringRe}|{_charRe}"r"|[-+]?[\w.]+" # expression should match constants and may accept more
+
+_optValRe   = f"{_stringRe}|{_charRe}"r"|[-+]?[\w.]+" # should match constants and may accept sth. more
 _optValPat  = regex.compile(_optValRe)
 _cSymbRe = (r">>=|<<=|<=>|->\*|"
             r"\+=|-=|\*=|/=|%=|\^=|&=|\|=|<<|>>|==|!=|<=|>=|&&|\|\||\+\+|--|->|::|"
-            r'''(?<!\*)/(?![/*])|[-+*%^&|~!=<>,\[\]():?'"]''')
+            r'''[-+*%^&|~!=<>,\[\]():?'"]|(?<!\*)/(?![/*])''')
 _cSymbPat = regex.compile(_cSymbRe)
 
 _opSym0Re = f"(?:(?P<brackR>\\({___}\\))|(?P<brackS>\\[{___}])"r"|[-+*/%^&|~!=<>,]{1,3})"
 _ptrArgOps0Re = r"(?:\s*[&*]\s*|\s*const\b\s*)+"
 
 
-# Warning: can find an expression or an initializer
-_methFinderRe = (r"(?:~|\boperator\b"f"|{_idRe}(?:{___}<(?:{_clipRe}|[^;{{}}])*+>)?){___}\\(")
+# Warning: can find not method prototypes (an expression, an initializer)
+_methFinderRe = (r"(?:~|\boperator\b|\b\w+\b"f"(?:{___}<(?:{_clipRe}|[^;{{}}])*+>)?){___}\\(")
 
 
 # no function types support
@@ -74,6 +75,7 @@ _tpProtSymbPat = regex.compile(r"::|[<>*&`%]")
 
 
 ## Class for parsing and manipulating C++ syntax.
+#  @anchor Syntax
 class Syntax:
 
     ## Regular expression matching comments.
@@ -88,7 +90,7 @@ class Syntax:
     charRe     = _charRe
     ## Syntax.charRe compiled with regex.compile.
     charPat    = _charPat
-    ## Regular expression matching clipped ranges - comments, string or char literals.
+    ## Regular expression matching clipped ranges -- comments, string or char literals.
     clipRe     = _clipRe
     ## Syntax.clipRe compiled with regex.compile.
     clipPat    = _clipPat
@@ -99,6 +101,7 @@ class Syntax:
         
     ## Adds an indentation to all lines.
     #
+    # @param code    Code piece.
     # @param indent  String to be inserted.
     def addIndent(code, indent):
         return _lineStartPat.sub(lambda mres: mres.group(0) + indent, code)\
@@ -110,14 +113,14 @@ class Syntax:
     # * no white spaces,
     # * a single `` ` `` in places where a white space is required (e.g., ``unsigned`int``),
     # * sequences `>>` split with `` ` `` if they are not a single operator (e.g., ``vector<vector<int>`>``),
-    # * the 3 symbols: `(` `)` `,` followed by `` ` `` (e.g., <int,`pair<int,`int>`>).
+    # * the 3 symbols: `(` `)` `,` followed by `` ` `` (e.g., ``<int,`pair<int,`int>`>``).
     #
     # The backtick `` ` `` should be understand as a separator between tokens or an escape character. 
     #
     # @param prot     Piece of a prototype (e.g., type, template arguments) in the base normal form.
     # @param hdSpace  Specifies if the result should match white spaces at the start.
     # @param tlSpace  Specifies if the result should match white spaces at the end.
-    # @return         Regular exression matching `prot` in C++ code. Specifically it is `prot` with:
+    # @return         Regular expression matching `prot` in C++ code. Specifically it is `prot` with:
     # * removed `` ` ``,
     # * escaped `regex` symbols,
     # * white space patterns added around symbolic tokens,
@@ -142,31 +145,21 @@ class Syntax:
     def makeTypeRe(tp):
         return Syntax.makeBaseProtRe(tp)
 
-        #tpRegex = _tpProtSymbPat.sub(lambda m: f"\\s*{m.group()}\\s*", tp)
-        #tpRegex = (tpRegex
-        #            .replace("`", r",")
-        #            .replace(r"\s**\s*", r"\s*\*\s*")
-        #            .replace(r"\s*\s*", r"\s*")
-        #            .replace(r"\s*%\s*", r"\s+"))
-        #tpRegex = regex.sub(r"^\\s\*", "", tpRegex)
-        #tpRegex = regex.sub(r"\\s\*$", "", tpRegex)
-        #return tpRegex
-
 
     ## Given a method or function prototype in the normal form returns a regular expression that matches it.
     #
     # Method/function prototype normal form:
     # * no return type,
     # * prefix before argument parentheses has to be in the base normal form (see Syntax.makeBaseProtRe),
-    # * argument parenteses has to contain only types of arguments in the base normal form split with ``", "`` and
+    # * argument parentheses has to contain only types of arguments in the base normal form split with ``", "`` and
     # no extra spaces,,
     # * argument parentheses are not escaped with `` ` ``
-    # * after the parenteses ``" const"`` is allowed.
+    # * after the parentheses ``" const"`` is allowed.
     #
     # E.g., ``Foo::bar(unsigned`int, vector<pair<int,`int>`>*) const`` .
     #
     # @param prot  Valid method/function prototype in the normal form (see Syntax.parseMethPrototype).
-    # @return      Regular exression matching `prot` in C++ code. Specifically it is `prot` with:
+    # @return      Regular expression matching `prot` in C++ code. Specifically it is `prot` with:
     # * removed `` ` ``,
     # * escaped `regex` symbols,
     # * white space patterns added around symbolic tokens,
@@ -191,31 +184,12 @@ class Syntax:
             re += r"\s*" + "\s+".join(mods)
         return re
 
-        #mres = _methProtPat.fullmatch(prot)
-        #protRegex = "(?<!::\s*)"
-        #if mres.group('cont'):
-        #    protRegex += f"{mres.group('cont')}\\s*::\\s*"
-        #assert not mres.group('tempArgs'), "Template arguments currenly not supported"
-        #protRegex += f"(?P<methname>{mres.group('name')})\\s*\(\\s*"
-        #if mres.group('targ1'): #
-        #    protRegex += (Syntax.makeBaseProtRe(mres.group('targ1')) + 
-        #                  r"\s*(?:\b(?P<argname>\w+)\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?")
-        #    for tp in mres.captures('targ2'):
-        #        protRegex += (r",\s*" + Syntax.makeBaseProtRe(tp) + 
-        #                      r"\s*(?:\b(?P<argname>\w+)\s*)?(?:=\s*" f"(?:{_optValRe})\\s*)?")
-        #else:
-        #    protRegex += "(?P<argname>a^)?"
-        #protRegex += r"\)"
-        #if mres.group('const'):
-        #    protRegex += r"\s*const"
-        #return protRegex
-
 
     ## Given a method or function prototype in the normal form returns its id-expression in list form.
     #
     # @param prot  Method or function prototype in the normal form (see Syntax.makeMethProtRe).
     # @return      Pair `(id, rem)`, where `id` is a qualified id in the form of a list of name specifiers 
-    #              (the specifiers of `A::B` are `A`, `B`) and `rem` is the reimaing prototype part.
+    #              (the specifiers of `A::B` are `A`, `B`) and `rem` is the remaining prototype part.
     #
     # @par  Example
     # ``extractMethProtId("::std::vector<std::pair<int,`int>`>::clear()")``  
@@ -262,10 +236,10 @@ class Syntax:
     #
     # @param code   The code.
     # @param start  Starting position.
-    # @return       Pair `(tp, end)` or `None`, where `tp` is the parsed type in the base prtotype normal 
+    # @return       Pair `(tp, end)` or `None`, where `tp` is the parsed type in the base prototype normal 
     #               form (see Syntax.makeBaseProtRe) and `end` is the end position of the parsed code piece.
     #
-    # @remark  Currently no support for function types, possibly more (the autor hasn't checked
+    # @remark  Currently no support for function types, and possibly more (the author hasn't checked
     #          the whole C++ syntax).
     #
     # @par  Example
@@ -406,6 +380,7 @@ class Syntax:
     #
     # @param code   The code.
     # @param start  Starting position.
+    # @param prefixCheck  If `True`, code before `start` is checked to ensure if it points a prototype.
     # @return       Pair `(prot, nargs, end)` or `None`, where `prot` is the parsed prototype in the normal 
     #               form (see Syntax.makeMethProtRe), `nargs` is the argument name list and `end` is the end position 
     #               of the parsed code piece. The character `code[end]` has to be in `";{:"`. 

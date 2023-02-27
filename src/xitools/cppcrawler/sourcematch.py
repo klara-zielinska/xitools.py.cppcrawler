@@ -1,17 +1,17 @@
 from abc import ABC, abstractclassmethod
 
 
-## Abstract class to represent regex.Match-like matches in SourceFile-s.
-# @anchor SourceMatch
+## Abstract class to represent `regex.Match`-like matches in @ref SourceFile.
+#  @anchor SourceMatch
 class SourceMatch(ABC):
     
     ## Constructor that has to be called in child classes.
     #
-    # @param src         The SourceFile in which the match was made.
-    # @param copySource  If True, a shallow copy of src is made for internal use. Set False only if src will not 
-    #                    be modified. Otherwise the object can become invalid.
-    def __init__(self, sourcefile, copySource=True):
-        self.__sourcefile = sourcefile.copy() if copySource else sourcefile
+    # @param src         The @ref SourceFile in which the match was made.
+    # @param copySource  If `True`, a shallow copy of `src` is made for internal use. Set `False` only if 
+    #                    `src` will not be modified. Otherwise the object can become invalid.
+    def __init__(self, src, copySource=True):
+        self.__sourcefile = src.copy() if copySource else src
 
 
     ## Equivalent to SourceMatch.group.
@@ -19,7 +19,7 @@ class SourceMatch(ABC):
         return self.group(*groups)
 
 
-    ## Order based on the positions of entire matches (group 0). Comparing with None is always False.
+    ## Order based on the positions of entire matches (group 0). Comparing with `None` is always `False`.
     def __lt__(self, other):
         if other is None: 
             return False
@@ -61,7 +61,7 @@ class SourceMatch(ABC):
     ## Returns one or more subgroups of the match. 
     #
     # If there is a single argument, the result is a single string; if there are multiple arguments, the result is 
-    # a tuple with one item per argument. No arguments is equivalent to passing 0. The 0 argument results in the
+    # a tuple with one item per argument. No arguments is equivalent to passing `0`. The `0` argument results in the
     # entire match.
     def group(self, *groups):
         match len(groups):
@@ -73,8 +73,8 @@ class SourceMatch(ABC):
     ## Returns the indices of the starts of the substrings matched by subgroups.
     #
     # If there is a single argument, the result is a single number; if there are multiple arguments, the result is 
-    # a tuple with one item per argument. No arguments is equivalent to passing 0. The 0 argument means the entire 
-    # match. If a passed group exists, but did not contribute to the match, -1 is returned.
+    # a tuple with one item per argument. No arguments is equivalent to passing `0`. The `0` argument means the entire 
+    # match. If a passed group exists, but did not contribute to the match, `-1` is returned.
     def start(self, *groups):
         match len(groups):
             case 0: return self.__sourcefile.orgPos(self.intStart(0))
@@ -85,8 +85,8 @@ class SourceMatch(ABC):
     ## Returns the indices of the ends of the substrings matched by subgroups.
     #
     # If there is a single argument, the result is a single number; if there are multiple arguments, the result is 
-    # a tuple with one item per argument. No arguments is equivalent to passing 0. The 0 argument means the entire 
-    # match. If a passed group exists, but did not contribute to the match, -1 is returned.
+    # a tuple with one item per argument. No arguments is equivalent to passing `0`. The `0` argument means the entire 
+    # match. If a passed group exists, but did not contribute to the match, `-1` is returned.
     def end(self, *groups):
         match len(groups):
             case 0: return self.__sourcefile.orgPos(self.intEnd(0))
@@ -118,15 +118,15 @@ class SourceMatch(ABC):
         
     ## Returns a dictionary containing all the named subgroups of the match, keyed by the subgroup name.
     #
-    # The default argument is used for groups that did not participate in the match; it defaults to None.
+    # The default argument is used for groups that did not participate in the match; it defaults to `None`.
     @abstractclassmethod
     def groupdict(self, default=None):
         pass
     
 
-    ## Returns a tuple containing all the subgroups of the match from 1.
+    ## Returns a tuple containing all the subgroups of the match from `1`.
     #
-    # The default argument is used for groups that did not participate in the match; it defaults to None.
+    # The default argument is used for groups that did not participate in the match; it defaults to `None`.
     @abstractclassmethod
     def groups(self, default=None):
         pass
@@ -151,16 +151,17 @@ class SourceMatch(ABC):
     
 
 
-## Impementation of SourceMatch that wraps regex.Match.
+## Implementation of SourceMatch that wraps `regex.Match`.
+#  @anchor SourceRegexMatch
 #
 # For the description of the methods see SourceMatch.
 class SourceRegexMatch(SourceMatch):
 
     ##
-    # @param src   The SourceFile.
-    # @param mres  The regex.Match that was matched in src.
-    # @param copySource  If True, a shallow copy of src is made for internal use. Set False only if src will not 
-    #                    be modified. Otherwise the object can become invalid.
+    # @param src   The @ref SourceFile.
+    # @param mres  The `regex.Match` that was matched in `src`.
+    # @param copySource  If `True`, a shallow copy of `src` is made for internal use. Set `False` only if 
+    #                    `src` will not be modified. Otherwise the object can become invalid.
     def __init__(self, src, mres, *, copySource=True):
         assert mres
         SourceMatch.__init__(self, src, copySource)
@@ -189,18 +190,19 @@ class SourceRegexMatch(SourceMatch):
     
 
     
-## Impementation of SourceMatch that is based on a list of indice ranges in a source.
+## Implementation of SourceMatch that is based on a list of indice ranges in a source.
+#  @anchor SourceRangeMatch
 #
 # For the description of the methods see SourceMatch.
 class SourceRangeMatch(SourceMatch):
     
     ##
-    # @param src     The SourceFile.
-    # @param ranges  A pair (start, end) or a non-empty list of such pairs, where start, end are indices. The pair 
-    #                with an index n, defines the n-th subgroup.
-    # @param int     If True, the indices are internal 
-    # @param copySource  If True, a shallow copy of src is made for internal use. Set False only if src will not 
-    #                    be modified. Otherwise the object can become invalid.
+    # @param src     The @ref SourceFile.
+    # @param ranges  Pair `(start, end)` or a non-empty list of such pairs, where `start`, `end` are indices. 
+    #                The pair with an index *n*, defines the *n*-th subgroup.
+    # @param int     If `True`, the indices are internal 
+    # @param copySource  If `True`, a shallow copy of `src` is made for internal use. Set `False` only if `src` 
+    #                    will not be modified. Otherwise the object can become invalid.
     def __init__(self, src, ranges, *, int=False, copySource=True):
         if isinstance(ranges, tuple):
             ranges = [ranges]

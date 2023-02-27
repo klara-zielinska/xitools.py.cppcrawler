@@ -4,11 +4,12 @@ from . import sourcematchdict as smd
 import bisect
 
 
-# the author prefers to have int as a keyword paramter in some methods that also need the int type
+# the author prefers to have int as a keyword parameter in some methods that also need the int type
 _intType = int
 
 
 ## Dictionary class that stores source file scopes.
+#  @anchor SourceScopeDict
 #
 # It inherits from `dict` where keys are @ref SourceFile and values are lists of either pairs `(start, end)` or
 # triples `(start, end, tag)` -- `start`, `end` are original source file positions (see @ref SourceFile) and `tag` may 
@@ -20,7 +21,7 @@ class SourceScopeDict(dict):
 
     ##
     # @param other   Dictionary to be copied.
-    # @param tagged  Determinies if scopes should contain tags. If `None`, it is determined upon `other`.
+    # @param tagged  Determines if scopes should contain tags. If `None`, it is determined upon `other`.
     # @param int     If `True`, positions in `other` are taken as internal (see @ref SourceFile).
     def __init__(self, other={}, *, tagged=None, int=False):
         super(SourceScopeDict, self).__init__()
@@ -75,7 +76,7 @@ class SourceScopeDict(dict):
     ## Inserts a scope.
     #
     # @param src     The @ref SourceFile.
-    # @param tmatch  Pair `(start, end)` or triple `(start, end, tag)`, where `start`, `end` are original source file 
+    # @param scope   Pair `(start, end)` or triple `(start, end, tag)`, where `start`, `end` are original source file 
     #                positions (see @ref SourceFile) and `tag` may be anything.
     # @param int     If `True`, positions in `scope` are taken as internal (see @ref SourceFile).
     def insert(self, src, scope, *, int=False):
@@ -86,7 +87,7 @@ class SourceScopeDict(dict):
         self.setdefault(src, []).append(scope)
         
 
-    ## Matchs all scopes against the given pattern and returns a @ref SourceMatchDict.
+    ## Matches all scopes against the given pattern and returns a @ref SourceMatchDict.
     #
     # Tags in the result are copied form the matched scopes.
     def matchEach(self, pat):
@@ -104,7 +105,7 @@ class SourceScopeDict(dict):
     
     ## Determines if a dictionary is tagged.
     #
-    # @param d  SourceScopeDict or a non-empty `{` @ref SourceFile `: <scope> list }` where `<scope>` is a pair 
+    # @param d  SourceScopeDict or a non-empty `{`@ref SourceFile `: <scope> list }` where *<scope>* is a pair 
     #           `(start, end)` or a triple `(start, end, tag)`, `start`, `end` are original source file positions 
     #           (see @ref SourceFile) and `tag` may be anything.
     def isDictTagged(d):
