@@ -1,19 +1,18 @@
 # XiTools C++ Crawler
 
-The C++ Crawler is a tool for processing and querying C++ code. It allows advanced searches and replacements.
+C++ Crawler is a tool for processing and querying C++ code implemented in the form of a Python module.
 
 ## Key features
 
 * Searching for regular expressions
 * Searching for C++ language constructions (e.g., classes, method declarations, method definitions)
-* Omitting comments, string literals or blocks during searches
 * Replacing matched code
-* Creating scopes in source files (e.g., scoping to specified classes, method bodies)
-* Performing searches and replacements restricted to scopes, possibly in many files at once
-* Matching scopes (e.g., to filter methods starting with a given prefix)
-* Contains a tag system that allows to pass information between scopes and searches (e.g., one can scope to
-a class set tagged with names, search for methods and return a result tagged with pairs class + method name)
-* Contains features that facilitate loading and managing sources
+* Omitting comments, string literals or blocks during searches
+* Setting scopes in source files (e.g., scoping to specified class or method bodies)
+* Performing searches and replacements in the scopes - possibly in many across many files at once
+* Contains a tag system that allows to pass information between scopes and searches (e.g., we can scope to
+class bodies, where scope tags are class names, search for methods and return pairs: class + method name)
+* Contains features that facilitate loading and managing source files
 
 ## Short example
 
@@ -28,14 +27,14 @@ methSearchRe = r"(?i)\b(?P<name>\w*health\w*)\s*\("
 for src in crawler.loadSourceFiles(["*.h", "*.cpp"]):
     if src.tryScopeToClassBody("class|struct", r"Cv\w*Info"):
         found = []
-        for (rmatch, stag) in src.findAll(methSearchRe, scopeTag=True, skipBlocks=True):
-            if Syntax.parseMethPrototype(src.intCode(rmatch.start())):
-                found.append((rmatch, stag))
+        for (mch, tag) in src.findAll(methSearchRe, scopeTag=True, skipBlocks=True):
+            if Syntax.parseMethPrototype(src.intCode(), mch.start()):
+                found.append((mch, tag))
 
         if found:
             print("\n\n" + src.filepath() + "\n---")
-            for rmatch, (kind, name) in found:
-                print(f'({kind}) {name}::{rmatch.group("name")}', rmatch.startLoc())
+            for mch, (kind, name) in found:
+                print(f'({kind}) {name}::{mch.group("name")}', mch.startLoc())
 ```
 
 The prefix `(?i)` in the regular expression stands for *case insensitive*, `(?P<name>...)` for a named capture group, 
@@ -48,17 +47,15 @@ structures and unions are also C++ classes). These scopes are tagged with pairs 
 
 The `findAll` method searches created scopes. The `scopeTag` switch specifies that each 
 returned result should be paired with the tag of the scope where the match was found. The switch `skipBlocks` 
-specifies to not search inside blocks.
+specifies to not search inside blocks. The `mch` variable is a match object.
 
 The pattern `methRe` is an approximation that finds potential method prototypes.
 We then verify them by calling `parseMethPrototype`. (This method also verifies the prefixed code to ensure the
-validity of the prototype.)
-
-The `intCode` optionally takes 2 arguments: start and end position, and returns the code 
-between them - no second argument means *till the end*.
+validity of the prototype.) The second argument is the position from where to start parsing. The `intCode` 
+method generally returns the code as a string (see the documentation for details).
 
 The `start` method of a match object returns its starting position. The `startLoc` method 
-returns the pair: line number, in-line character position.
+returns the previous position in a form of a pair: line number, in-line character position.
 
 
 Example output:
@@ -92,32 +89,33 @@ C:\Projects\Caveman2Cosmos\Sources\CvDummyInfo.cpp
 (struct) CvDummyInfo::dummyHealth (5, 6)
 ```
 
-The last entry is added for the presentation reasons.
+The last method was added for the presentational reasons.
 
 The example is available in the repository in: *examples/01_search_health_methods*
 
 ## Applications
 
 The crawler was used in the [Caveman2Cosmos](https://www.moddb.com/mods/caveman2cosmos) project to:
-* conduct simple code qualification of around 17&nbsp;000 methods and add profiling to around 2000 of them,
+* conduct simple code qualification of around 17 000 methods and add profiling to around 2000 of them,
 * comment out all `#if 0` blocks.
 
-The scripts are included as examples.
+These scripts are included as examples.
 
 ## Disclaimer
 
 The project is in its infant stage. Backward compatibility is not expected in the first few releases.
-Afterward it is going to be highly expected. Releases will be provided with a list of methods that have changed.
-Patches (the last number in the version) are going to be backward compatible, as usual.
+Afterward it is going to be highly expected. Releases will be provided with a list of methods that have been
+changed. Patches (the last numeral in the version number) are going to be backward compatible, as usual.
 
-The current solutions were designed to solve specific problems and need to be refined. For instance,
-searching sources was initially based on scopes in source file objects, but searching
-without setting scopes appeared handy, thus there are methods like find and findUnscoped, which
+The current solutions were designed to solve specific problems and need to be refined. For instance:
+searching was initially based on scopes in source file objects, but then searching
+without setting scopes appeared to be handy, thus now there are methods like `find` and `findUnscoped`, which
 probably should be refactored and consolidated. 
 
-<u>The crawler does not currently support Unix-style line endings</u> - but it is of high priority.
+<u>Currently the crawler does not support Unix-style line endings</u> (coming soon if the author won't starve to 
+death or become homeless).
 If you want to use it for Unix sources, you may convert them to Windows-style, use it, and 
-then convert it back.
+then convert them back.
 
 ## Documentation
 
