@@ -9,32 +9,30 @@
  /*! @page searchHealthMethods Searching methods
   *
   * The following example finds all methods containing `health` in their names, in 
-  * all classes and structures of names `Cv*Info` across all source files located in the `Sources` directory.
+  * all classes and structures with names matching `Cv*Info` across all source files located in the `Sources` directory.
   *
   * @par 01_search_health_methods\\search_health_methods.py
   * @include{lineno} 01_search_health_methods/search_health_methods.py
   *
-  * The prefix `(?i)` in the regular expression stands for *case insensitive*, `(?P<name>...)` for a named capture group
-  * where `name` is the name, `\b` is a 0-width *word edge*, `\w` is a literal character and `\s` is a white space. (See
-  * the Python `re` module  documentation for details.)
+  * The prefix `(?i)` in the regular expression stands for *case insensitive*, `(?P<name>...)` for a named capture group, 
+  * `\b` is a 0-width symbol matching a literal edge, `\w` is a literal character and `\s` is a white space. (See
+  * the Python `re` module  documentation for more details.)
   * 
-  * The method `tryScopeToClassBody` creates search scopes in the underlying object, one per each found class (note that 
+  * The method `tryScopeToClassBody` creates scopes in the underlying object, one per each found class (note that 
   * structures and unions are also C++ classes). These scopes are tagged with pairs `(kind, name)`, where 
   * `kind` is: `class`, `struct` or `union` and `name` is the class name.
   * 
-  * The switch `scopeTag` in the `findAll` method specifies that each returned result should be paired with the tag of the 
-  * scope where the match was found. The switch `skipBlocks` specifies to not search inside blocks.
+  * The `findAll` method searches created scopes. The `scopeTag` switch specifies that each 
+  * returned result should be paired with the tag of the scope where the match was found. The switch `skipBlocks` 
+  * specifies to not search inside blocks. The `mch` variable is a match object.
   * 
-  * Finding a `methRe` match does not guarantee, it is a valid method declaration (it could be an initializer).
-  * We verify this by calling `parseMethPrototype`, which except parsing also validate the prefix code.
+  * The pattern `methRe` is an approximation that finds potential method prototypes.
+  * We then verify them by calling `parseMethPrototype`. (This method also verifies the prefixed code to ensure the
+  * validity of the prototype.) The second argument is the position from where to start parsing. The `intCode` 
+  * method generally returns the code as a string (see the documentation for details).
   * 
-  * The `intCode` method takes optionally start and end positions, and returns a piece of the internal code between them 
-  * &ndash; no second argument means *till the end*. The internal code is the original code with all `\<new line>` 
-  * sequences removed (same as the preprocessor does). The arguments are by default positions with respect to the original
-  * code. However the crawler can operate on both internal and original indices.
-  * 
-  * The `start` and `startLoc` methods of a match object return, respectively, the start position and the pair: line 
-  * number, character position in the line, both with respect to original code.
+  * The `start` method of a match object returns its starting position. The `startLoc` method 
+  * returns the previous position in a form of a pair: line number, in-line character position.
   * 
   * 
   * @par Example output
@@ -68,7 +66,7 @@
   * (struct) CvDummyInfo::dummyHealth (5, 6)
   * ```
   * 
-  * The last entry is added for the presentation.
+  * The last method was added for the presentational reasons.
   */
  
  
