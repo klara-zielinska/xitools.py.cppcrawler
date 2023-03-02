@@ -1,6 +1,6 @@
 [project]
 name = "xitools.py.cppcrawler"
-version = "0.0.1"
+version = "0.1-alpha1"
 description = "Module for C++ code processing and syntax analysis"
 authors = [
     {name = "Klara Zielińska", email = "clare.blackwater2@gmail.com"},
