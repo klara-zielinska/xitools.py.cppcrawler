@@ -14,15 +14,14 @@ _clipPat    = regex.compile(_clipRe)
 __  = f"(?:\\s|{_commentRe})"
 ___ = f"{__}*+"
 
-_optValRe   = f"{_stringRe}|{_charRe}"r"|[-+]?[\w.]+" # should match constants and may accept sth. more
+_optValRe   = f"{_stringRe}|{_charRe}"r"|[-+]?[\w.]+" # match constants and may accept sth. more
 _optValPat  = regex.compile(_optValRe)
 _cSymbRe = (r">>=|<<=|<=>|->\*|"
             r"\+=|-=|\*=|/=|%=|\^=|&=|\|=|<<|>>|==|!=|<=|>=|&&|\|\||\+\+|--|->|::|"
             r'''[-+*%^&|~!=<>,\[\]():?'"]|(?<!\*)/(?![/*])''')
 _cSymbPat = regex.compile(_cSymbRe)
 
-_opSym0Re = f"(?:(?P<brackR>\\({___}\\))|(?P<brackS>\\[{___}])"r"|[-+*/%^&|~!=<>,]{1,3})"
-_ptrArgOps0Re = r"(?:\s*[&*]\s*|\s*const\b\s*)+"
+_opSymbRe = f"(?:(?P<brackR>\\({___}\\))|(?P<brackS>\\[{___}])"r"|[-+*/%^&|~!=<>,]{1,3})"
 
 
 # Warning: can find not method prototypes (an expression, an initializer)
@@ -30,47 +29,39 @@ _methFinderRe = (r"(?:~|\boperator\b|\b\w+\b"f"(?:{___}<(?:{_clipRe}|[^;{{}}])*+
 
 
 # no function types support
-_methProtAPat = regex.compile(r"(?P<hd>(?:[^(]|\(`)++\()"
-                              r"(?:(?P<targ1>{tp})(?:, (?P<targ2>{tp}))*+)?"
-                              r"\)(?: (?P<mod>\w++))*".format(tp = r"(?:[^),]|[),]`)++"))
-_methProtPat = regex.compile(r"(?:(?P<cont>\w+)::)?(?P<name>operator\(\)|~?[^(]+)(?P<tempArgs><[^(]*>)?"
-                             r"\((?P<targ1>{tp})?(?:, (?P<targ2>{tp}))*\)(?P<const> const)?".format(tp = "[^),]+"))
-_methProt0Pat = regex.compile(r"(?:(?P<cont>\w+)::)?")
-_methProt1Pat = regex.compile(r"\([^`]")
-_methProt2Pat = regex.compile(r"(?:(?P<seg>)::)?(?P<seg>[^:]+)(?:::(?P<seg>[^:]+))*")
-_methDec0Pat = regex.compile(r"(?<!(?:,)\s*)(?:\b(?P<cont>\w+)\s*::\s*)?(?P<dest>~\s*)?"
-                             r"\b(?:operator\b\s*(?P<op>"f"(?:{_opSym0Re})?)"
-                             r"|(?P<name>\w+)\s*(?=(?P<x>\(|<)))")
-_methDec00Pat = regex.compile(f"(?<=(?P<del>=|#endif)(?:{__}|#(?!endif).*\n|[^;{{}}=]*+)"
-                                  f"|(?<=(?:(?<!public|protected|private){___}:|,){___}))")
-_methDec01Pat = regex.compile(f"(?P<nssep>::{___})?"
-                              f"(?:\\boperator\\b{___}(?P<op>{_opSym0Re})?{___}"
-                                  f"|(?P<dest>~{___})?\\b(?P<id>\\w+){___})")
-_methDec0aPat = regex.compile(f"\\({___}")
-_methDec1Pat = regex.compile(f"{___}"r"(?P<name>\w*)"f"{___}")
-_methDec1aPat = regex.compile(f"{___}(?P<opt>=){___}")
-_methDec2Pat = regex.compile(f"{___},?{___}")
-_methDec3Pat = regex.compile(f"{___}(?P<const>const)?{___}(?=[;{{:])")
-_tpOps0Pat = regex.compile(r"\s*((?:[\*&]|const\b|typename\b|\s+)*)")
+_methProtPat = regex.compile(r"(?P<hd>(?:[^(]|\(`)++\()"
+                             r"(?:(?P<targ1>{tp})(?:, (?P<targ2>{tp}))*+)?"
+                             r"\)(?: (?P<mod>\w++))*".format(tp = r"(?:[^),]|[),]`)++"))
+_methProtN0Pat = regex.compile(r"\([^`]")
+_methProtN1Pat = regex.compile(r"(?:(?P<seg>)::)?(?P<seg>[^:]+)(?:::(?P<seg>[^:]+))*")
+_methProt0Pat  = regex.compile(f"(?<=(?P<del>=|#endif)(?:{__}|#(?!endif).*\n|[^;{{}}=]*+)"
+                               f"|(?<=(?:(?<!public|protected|private){___}:|,){___}))")
+_methProt1Pat  = regex.compile(f"(?P<nssep>::{___})?"
+                               f"(?:\\boperator\\b{___}(?P<op>{_opSymbRe})?{___}"
+                               f"|(?P<dest>~{___})?\\b(?P<id>\\w+){___})")
+_methProt2Pat = regex.compile(f"{___}(?P<const>const)?{___}(?=[;{{:])")
+_methArgs0Pat = regex.compile(f"\\({___}")
+_methArgs1Pat = regex.compile(f"{___}"r"(?P<name>\w*)"f"{___}")
+_methArgs2Pat = regex.compile(f"{___}(?P<opt>=){___}")
+_methArgs3Pat = regex.compile(f"{___},?{___}")
+_tpOps0Pat = regex.compile(r"\s*((?:[\*&]|const\b|\s+)*)")
 _tpOps1Pat = regex.compile(r"(?:[\*&]|const\b|\s+)*(?<!\s)")
 _tpSpaceRepPat = regex.compile(r"(\b\s+\b)|\s+")
 _tpBuiltInPat = regex.compile(r"(?:unsigned\s+)?(?:(?:short|long(?:\s+long)?)(?:\s+int)?|int|char)")
-_tpName0Pat = regex.compile(r"\s*(\w+)")
-_tpName1Pat = regex.compile(r"\s*::\s*(\w+)")
+_tpName0Pat = regex.compile(r"\s*(?P<rootns>::)?\s*(?P<id>\w+)")
+_tpName1Pat = regex.compile(r"\s*::\s*(?P<id>\w+)")
 _tpArrPat = regex.compile(r"\s*\[[^]]*]")
-_tpTailPat = regex.compile(r"(?:\s*typename)?")
-_tpFuncPat = regex.compile(r"\s*(?:\((?P<ptr>"f"{_ptrArgOps0Re}"r")\)\s*)?(?=\()")
+_tpHdPat   = regex.compile(r"(?:\s*typename\b(?:\s+const\b)?\s*)?")
+_tpTailPat = regex.compile(r"(?:\s*(?:const\s+)?typename)?")
 _tempArgs0Pat = regex.compile(r"\s*<\s*")
 _tempArgs1Pat = regex.compile(r"\s*,\s*")
 _tempArgs2Pat = regex.compile(r"\s*>")
 _lineStartPat = regex.compile(r"^|\r\n")
-_indentPat = regex.compile(r"(?<=^|\r\n)[ \t]*")
 _expr0Pat = regex.compile(r"\s*+[^\(\)\[\],]+(?P<popen>\(|\[)?(?<!\s)")
 _expr1Pat = regex.compile(r"\s*,?\s*")
 _expr2Pat = regex.compile(r"[)\]]")
 _classHead0Pat = regex.compile(f"\\b(?P<kind>class|struct|union){___}(?P<name>\\w+){___}")
 _classHead1Pat = regex.compile(f"(?P<mod>final)?{___}"r"(?::(?!:)(?:"f"{__}"r"|[^;{])*+)?(?=[;{])")
-_tpProtSymbPat = regex.compile(r"::|[<>*&`%]")
 
 
 
@@ -168,7 +159,7 @@ class Syntax:
     # * it is assumed that only correct C++ code is matched,
     # * currently no support for comments inside prototypes.
     def makeMethProtRe(prot):
-        mres = _methProtAPat.fullmatch(prot)
+        mres = _methProtPat.fullmatch(prot)
         re = Syntax.makeBaseProtRe(mres.group("hd"))
         if tp := mres.group('targ1'):
             tp2 = Syntax.makeBaseProtRe(tp, True)
@@ -195,12 +186,12 @@ class Syntax:
     # ``extractMethProtId("::std::vector<std::pair<int,`int>`>::clear()")``  
     # returns ``(["", "std", "vector<std::pair<int,`int>`>", "clear"], "()")``
     def extractMethProtId(prot):
-        argsStart = _methProt1Pat.search(prot).start()
+        argsStart = _methProtN0Pat.search(prot).start()
         idExpr = prot[:argsStart]
         id = []
         buf = ""
         tempArgsOpen = 0
-        for seg in _methProt2Pat.fullmatch(idExpr).captures("seg"):
+        for seg in _methProtN1Pat.fullmatch(idExpr).captures("seg"):
             tempArgsOpen += seg.count("<") - seg.count(">")
             if tempArgsOpen == 0:
                 id.append(buf + seg)
@@ -249,6 +240,10 @@ class Syntax:
         mres = _tpOps0Pat.match(code, start)
         tp = mres.group(1)
         pos = mres.end()
+
+        mres = _tpHdPat.match(code, pos)
+        tp += mres.group(0)
+        pos = mres.end()
         
         if mres := _tpBuiltInPat.match(code, pos):
             tp += mres.group(0)
@@ -258,13 +253,14 @@ class Syntax:
             mres = _tpName0Pat.match(code, pos)
             if not mres: return None
 
-            tp += mres.group(1)
+            if mres.group("rootns"): tp += "::"
+            tp += mres.group("id")
             pos = mres.end()
             match Syntax._parseTempArgsApp(code, pos):
                 case (args, pos): tp += args
 
             while mres := _tpName1Pat.match(code, pos):
-                tp += "::" + mres.group(1)
+                tp += "::" + mres.group("id")
                 pos = mres.end()
                 match Syntax._parseTempArgsApp(code, pos):
                     case (args, pos): tp += args
@@ -341,7 +337,7 @@ class Syntax:
 
 
     def _parseMethArgs(code, start=0):
-        mres = _methDec0aPat.match(code, start)
+        mres = _methArgs0Pat.match(code, start)
         if not mres: return None
 
         pos = mres.end()
@@ -353,17 +349,17 @@ class Syntax:
                     return None
 
                 case (tp, pos):
-                    mres2 = _methDec1Pat.match(code, pos)
+                    mres2 = _methArgs1Pat.match(code, pos)
                     if not mres2: return None
 
                     name = mres2.group("name") or None # if name = "", then None
                     pos = mres2.end()
                     targs.append(tp)
                     nargs.append(name)
-                    if (    mres3 := _methDec1aPat.match(code, pos)) and (
+                    if (    mres3 := _methArgs2Pat.match(code, pos)) and (
                             exppos := Syntax._parseMethDefaultExpr(code, mres3.end())):
                         pos = exppos[1]
-                    mres4 = _methDec2Pat.match(code, pos)
+                    mres4 = _methArgs3Pat.match(code, pos)
                     return (mres4.end(), None)
         while (res := readArg(pos)): pos = res[0]
         
@@ -390,7 +386,7 @@ class Syntax:
     # @remark  Currently no support for function types, volatile modifiers, possibly more (the author hasn't checked
     #          the whole C++ syntax).
     def parseMethPrototype(code, start=0, *, prefixCheck=True):
-        if prefixCheck and (mres := _methDec00Pat.match(code, start)):
+        if prefixCheck and (mres := _methProt0Pat.match(code, start)):
             if mres.group("del") != "#endif":
                 return None
             else:
@@ -399,7 +395,7 @@ class Syntax:
         prot = ""
         pos = start
         
-        while mres := _methDec01Pat.match(code, pos):
+        while mres := _methProt1Pat.match(code, pos):
             if mres.group("nssep"): prot += "::"
             pos = mres.end()
             if mres.group("id"):
@@ -430,7 +426,7 @@ class Syntax:
             case (targs, nargs, pos): prot += f"({', '.join(targs)})"
             case None:                return None
             
-        mres = _methDec3Pat.match(code, pos)
+        mres = _methProt2Pat.match(code, pos)
         if not mres: return None
         pos = mres.end()
         if mres.group("const"):
