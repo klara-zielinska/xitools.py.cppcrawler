@@ -84,7 +84,7 @@ class SyntaxTests(TestCase):
             self.assertEqual(Syntax._parseTempArgsApp(input), expRes)
 
 
-    def test_parseTypeProt(self):
+    def test_parseType(self):
         inputOutput = [ 
             (s:="int", ("int", len(s))),
             (s:="const int",   ("const`int", len(s))),
@@ -97,8 +97,9 @@ class SyntaxTests(TestCase):
 
             (s:="int[10]", ("int[10]", len(s))),
             (s:="int  [   10 + 20 * (30)  ]", ("int[10+20*(30)]", len(s))),
-
-            (s:="A::B", ("A::B", len(s))),
+            
+            (s:="A::B",          ("A::B", len(s))),
+            (s:="::A::B",        ("::A::B", len(s))),
             (s:="A :: B::    C", ("A::B::C", len(s))),
             (s:="A :: B::    C * const *", ("A::B::C*const*", len(s))),
 
