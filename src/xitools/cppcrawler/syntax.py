@@ -63,6 +63,16 @@ _expr2Pat = regex.compile(r"[)\]]")
 _classHead0Pat = regex.compile(f"\\b(?P<kind>class|struct|union){___}(?P<name>\\w+){___}")
 _classHead1Pat = regex.compile(f"(?P<mod>final)?{___}"r"(?::(?!:)(?:"f"{__}"r"|[^;{])*+)?(?=[;{])")
 
+_blockStartPat = regex.compile(
+		r"\s*"
+		r"\r\n(?P<ins>)[ \t]*#.*"
+		r"\s*\r\n(?P<ind>[ \t]*)(?P<del>\S)"
+	r"|"
+		r"\s*"
+		r"\r\n(?P<ins>)(?P<ind>[ \t]*)(?P<del>\S)"
+	r"|"
+		r"(?P<ind1>[ \t]*)(?P<ins0>)(?P<del1>\S).*"
+		r"(?:\s*(?<=\r\n)(?P<ind2>[ \t]*)\S)?")
 
 
 ## Class for parsing and manipulating C++ syntax.
@@ -462,3 +472,32 @@ class Syntax:
             return (kind, name, tempArgs, set(mres.captures("mod")), mres.end())
         else:
             return None
+
+    ## Returns the position for inserting a single line prefix in a block and the spacing that should be added around.
+    #
+    # @param start  Valid position of a block beginning (the `{` character).
+    # @param end    Valid position of a block end (the `}` character).
+    # @return       Triple `(hdspace, position, tlspace)`, where `position` is the position to insert and `hdspace`, 
+    #               `tlspace` are spacing that should be added in front and behind to preserve the indentation.
+    def blockSPrefixInsertPos(code, start, end, defaultIndent):
+        assert code[start] == '{' and code[end] == '}'
+
+        mres = _blockStartPat.match(code, start + 1, end + 1)
+
+        if mres.group("ins") is not None:
+            pos = mres.start("ins")
+
+            if mres.group("del") == '}':
+                return (mres.group("ind") + defaultIndent, pos, "\r\n")
+            else:
+                return (mres.group("ind"), pos, "\r\n")
+
+        else:
+            pos = mres.start("ins0")
+
+            if mres.group("del1") == '}':
+                return ("", pos, mres.group("ind1"))
+            elif (ind := mres.group("ind2")) is not None:
+                return ("", pos, "\r\n" + ind)
+            else:
+                return ("", pos, " ")

@@ -15,17 +15,6 @@ _endStrPat      = regex.compile(r'"|\r\n|$')
 _endComment1Pat = regex.compile(r'\r\n|$')
 _endCommentNOrNlPat = regex.compile(r'\*/|\r\n|$')
 
-_blockStartPat = regex.compile(
-		r"\s*"
-		r"\r\n(?P<ins>)[ \t]*#.*"
-		r"\s*\r\n(?P<ind>[ \t]*)(?P<del>\S)"
-	r"|"
-		r"\s*"
-		r"\r\n(?P<ins>)(?P<ind>[ \t]*)(?P<del>\S)"
-	r"|"
-		r"(?P<ind1>[ \t]*)(?P<ins0>)(?P<del1>\S).*"
-		r"(?:\s*(?<=\r\n)(?P<ind2>[ \t]*)\S)?")
-
 
 
 ## Class for storing C++ source files.
@@ -753,28 +742,9 @@ class SourceFile:
 	def blockSPrefixInsertPos(self, begin, *, int=False):
 		if not int: begin = self.intPos(begin)
 		assert begin in self.__blockEnds, "No block in the given position"
-		blockEnd   = self.__blockEnds[begin]
-		imres = self._matchPatUnscoped(_blockStartPat, begin + 1, blockEnd + 1)
-
-		if imres.group("ins") is not None:
-			pos = imres.start("ins")
-			if not int: pos = self.orgPos(pos)
-
-			if imres.group("del") == '}':
-				return (imres.group("ind") + self.defaultIndent, pos, "\r\n")
-			else:
-				return (imres.group("ind"), pos, "\r\n")
-
-		else:
-			pos = imres.start("ins0")
-			if not int: pos = self.orgPos(pos)
-
-			if imres.group("del1") == '}':
-				return ("", pos, imres.group("ind1"))
-			elif (ind := imres.group("ind2")) is not None:
-				return ("", pos, "\r\n" + ind)
-			else:
-				return ("", pos, " ")
+		res = Syntax.blockSPrefixInsertPos(self.__code, begin, self.__blockEnds[begin], self.defaultIndent)
+		if int: return res
+		else:   return (res[0], self.orgPos(res[1]), res[2])
 
 
 	## Inserts a single line prefix in a block.
