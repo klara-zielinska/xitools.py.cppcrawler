@@ -482,7 +482,7 @@ class Syntax:
     def blockSPrefixInsertPos(code, start, end, defaultIndent):
         assert code[start] == '{' and code[end] == '}'
 
-        mres = _blockStartPat.match(code, start + 1, end + 1)
+        mres = _blockStartPat.match(code, start + 1, end + 1) # end + 1 because of a simpler pattern
 
         if mres.group("ins") is not None:
             pos = mres.start("ins")
