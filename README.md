@@ -28,7 +28,7 @@ for src in crawler.loadSourceFiles(["*.h", "*.cpp"]):
     if src.tryScopeToClassBody("class|struct", r"Cv\w*Info"):
         found = []
         for (mch, tag) in src.findAll(methSearchRe, scopeTag=True, skipBlocks=True):
-            if Syntax.parseMethPrototype(src.intCode(), mch.start()):
+            if Syntax.parseMethPrototype(src.intCode(), mch.intStart()):
                 found.append((mch, tag))
 
         if found:
@@ -52,9 +52,10 @@ specifies to not search inside blocks. The `mch` variable is a match object.
 The pattern `methRe` is an approximation that finds potential method prototypes.
 We then verify them by calling `parseMethPrototype`. (This method also verifies the prefixed code to ensure the
 validity of the prototype.) The second argument is the position from where to start parsing. The `intCode` 
-method generally returns the code as a string (see the documentation for details).
+method returns the internal code representation which is the code with line continuations removed 
+(see the documentation for details).
 
-The `start` method of a match object returns its starting position. The `startLoc` method 
+The `intStart` method of a match object returns its starting internal position. The `startLoc` method 
 returns the previous position in a form of a pair: line number, in-line character position.
 
 

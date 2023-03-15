@@ -6,7 +6,7 @@ for src in crawler.loadSourceFiles(["*.h", "*.cpp"]):
     if src.tryScopeToClassBody("class|struct", r"Cv\w*Info"):
         found = []
         for (mch, tag) in src.findAll(methSearchRe, scopeTag=True, skipBlocks=True):
-            if Syntax.parseMethPrototype(src.intCode(), mch.start()):
+            if Syntax.parseMethPrototype(src.intCode(), mch.intStart()):
                 found.append((mch, tag))
 
         if found:
